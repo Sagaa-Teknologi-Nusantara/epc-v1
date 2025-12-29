@@ -115,11 +115,6 @@ export default function LoginPage() {
                     </div>
                 </div>
             </div>
-
-            {/* Footer */}
-            <p className="text-center text-teal-200 text-sm mt-8">
-                EPC Dashboard v4 · Weekly Report System
-            </p>
         </div>
     );
 }
