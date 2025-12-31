@@ -255,6 +255,44 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* EPCC Progress Section */}
+      {selectedReport?.epcc && (
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-bold">📊 EPCC Progress Breakdown</h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { key: 'engineering', label: 'Engineering', color: 'from-purple-400 to-purple-600', icon: '🔧' },
+              { key: 'procurement', label: 'Procurement', color: 'from-amber-400 to-amber-600', icon: '📦' },
+              { key: 'construction', label: 'Construction', color: 'from-green-400 to-green-600', icon: '🏗️' },
+              { key: 'commissioning', label: 'Commissioning', color: 'from-red-400 to-red-600', icon: '⚡' },
+            ].map(({ key, label, color, icon }) => {
+              const data = (selectedReport.epcc as unknown as Record<string, { plan?: number; actual?: number; weight?: number }>)[key] || {};
+              const plan = data.plan || 0;
+              const actual = data.actual || 0;
+              const variance = actual - plan;
+              return (
+                <div key={key} className="rounded-xl bg-slate-50 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-slate-600">{icon} {label}</span>
+                    <span className="text-xs text-slate-400">Weight: {data.weight || 0}%</span>
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <span className="text-2xl font-extrabold text-slate-700">{actual.toFixed(1)}%</span>
+                    <span className={`text-xs font-semibold ${variance >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {variance >= 0 ? '+' : ''}{variance.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                    <div className={`h-full rounded-full bg-gradient-to-r ${color}`} style={{ width: `${Math.min(actual, 100)}%` }} />
+                  </div>
+                  <p className="mt-1 text-[10px] text-slate-400">Plan: {plan.toFixed(1)}%</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Charts Row */}
       <div className="grid gap-5 lg:grid-cols-2">
         {/* S-Curve */}
@@ -297,6 +335,46 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Cash Flow Bar Chart Section */}
+      {selectedReport?.cashFlow && (
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-bold">💵 Cash Flow Details</h3>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: 'Revenue', value: selectedReport.cashFlow.revenue || 0, color: 'bg-green-500' },
+              { label: 'Cash Out', value: selectedReport.cashFlow.cashOut || 0, color: 'bg-red-500' },
+              { label: 'Billing', value: selectedReport.cashFlow.billing || 0, color: 'bg-blue-500' },
+              { label: 'Cash In', value: selectedReport.cashFlow.cashIn || 0, color: 'bg-purple-500' },
+            ].map(({ label, value, color }) => (
+              <div key={label} className="rounded-lg bg-slate-50 p-4 text-center">
+                <p className="text-xs text-slate-500 mb-2">{label}</p>
+                <div className={`inline-block ${color} text-white px-4 py-2 rounded-lg`}>
+                  <p className="text-lg font-extrabold">${(value / 1e6).toFixed(2)}M</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="rounded-lg bg-amber-50 p-3 text-center">
+              <p className="text-[10px] text-slate-500">Billing Coverage</p>
+              <p className="text-lg font-bold text-amber-600">{((selectedReport.cashFlow.billingCoverageRatio || 0) * 100).toFixed(1)}%</p>
+            </div>
+            <div className="rounded-lg bg-teal-50 p-3 text-center">
+              <p className="text-[10px] text-slate-500">Cash Collection</p>
+              <p className="text-lg font-bold text-teal-600">{((selectedReport.cashFlow.cashCollectionRatio || 0) * 100).toFixed(1)}%</p>
+            </div>
+            <div className="rounded-lg bg-blue-50 p-3 text-center">
+              <p className="text-[10px] text-slate-500">Cash Balance</p>
+              <p className="text-lg font-bold text-blue-600">${((selectedReport.cashFlow.cashFlowBalance || 0) / 1e6).toFixed(2)}M</p>
+            </div>
+            <div className="rounded-lg bg-slate-100 p-3 text-center">
+              <p className="text-[10px] text-slate-500">Burn Rate</p>
+              <p className="text-lg font-bold text-slate-600">${((selectedReport.cashFlow.cashBurnRate || 0) / 1e6).toFixed(2)}M</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* HSE & Quality Row */}
       <div className="grid gap-5 lg:grid-cols-2">
         {/* Safety Pyramid */}
@@ -330,6 +408,191 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Quality NCR & Punch List Section */}
+      {selectedReport?.quality && (
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-bold">🔍 Quality Performance</h3>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {/* NCR Summary */}
+            <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-4">
+              <p className="text-xs font-semibold text-red-600 mb-2">📝 NCR Status</p>
+              {(() => {
+                const q = selectedReport.quality as unknown as { siteOffice?: { ncr?: { ownerToContractor?: Record<string, { open?: number; closed?: number }>; contractorToVendor?: Record<string, { open?: number; closed?: number }> } } };
+                const ncrOpen = (q?.siteOffice?.ncr?.ownerToContractor?.process?.open || 0) + (q?.siteOffice?.ncr?.contractorToVendor?.process?.open || 0);
+                const ncrClosed = (q?.siteOffice?.ncr?.ownerToContractor?.process?.closed || 0) + (q?.siteOffice?.ncr?.contractorToVendor?.process?.closed || 0);
+                return (
+                  <div className="flex justify-around">
+                    <div className="text-center">
+                      <p className="text-xl font-extrabold text-red-600">{ncrOpen}</p>
+                      <p className="text-[10px] text-slate-500">Open</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xl font-extrabold text-green-600">{ncrClosed}</p>
+                      <p className="text-[10px] text-slate-500">Closed</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Punch List Summary */}
+            <div className="rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 p-4">
+              <p className="text-xs font-semibold text-amber-600 mb-2">📌 Punch List</p>
+              {(() => {
+                const q = selectedReport.quality as unknown as { siteOffice?: { punchList?: { ownerToContractor?: Record<string, { open?: number; closed?: number }>; contractorToVendor?: Record<string, { open?: number; closed?: number }> } } };
+                const punchOpen = (q?.siteOffice?.punchList?.ownerToContractor?.process?.open || 0) + (q?.siteOffice?.punchList?.contractorToVendor?.process?.open || 0);
+                const punchClosed = (q?.siteOffice?.punchList?.ownerToContractor?.process?.closed || 0) + (q?.siteOffice?.punchList?.contractorToVendor?.process?.closed || 0);
+                return (
+                  <div className="flex justify-around">
+                    <div className="text-center">
+                      <p className="text-xl font-extrabold text-amber-600">{punchOpen}</p>
+                      <p className="text-[10px] text-slate-500">Open</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xl font-extrabold text-green-600">{punchClosed}</p>
+                      <p className="text-[10px] text-slate-500">Closed</p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Welding Rejection */}
+            <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-4">
+              <p className="text-xs font-semibold text-blue-600 mb-2">🔧 Welding Rejection</p>
+              {(() => {
+                const q = selectedReport.quality as unknown as { siteOffice?: { welding?: { ndtAccepted?: number; ndtRejected?: number; rejectionRatePlan?: number } } };
+                const welding = q?.siteOffice?.welding;
+                const total = (welding?.ndtAccepted || 0) + (welding?.ndtRejected || 0);
+                const rate = total > 0 ? ((welding?.ndtRejected || 0) / total) * 100 : 0;
+                const plan = welding?.rejectionRatePlan || 2;
+                return (
+                  <div className="text-center">
+                    <p className={`text-2xl font-extrabold ${rate <= plan ? 'text-green-600' : 'text-red-600'}`}>
+                      {rate.toFixed(2)}%
+                    </p>
+                    <p className="text-[10px] text-slate-500">Plan: ≤{plan}%</p>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Certificate Progress */}
+            <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100 p-4">
+              <p className="text-xs font-semibold text-green-600 mb-2">📜 Certificates</p>
+              {(() => {
+                const q = selectedReport.quality as unknown as { certificate?: { completed?: number; underApplication?: number; notYetApplied?: number } };
+                const cert = q?.certificate;
+                const total = (cert?.completed || 0) + (cert?.underApplication || 0) + (cert?.notYetApplied || 0);
+                const pct = total > 0 ? ((cert?.completed || 0) / total) * 100 : 0;
+                return (
+                  <div className="text-center">
+                    <p className="text-2xl font-extrabold text-green-600">{pct.toFixed(1)}%</p>
+                    <p className="text-[10px] text-slate-500">{cert?.completed || 0}/{total} Completed</p>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Milestones Section */}
+      {((selectedReport?.milestonesSchedule?.length ?? 0) > 0 || (selectedReport?.milestonesPayment?.length ?? 0) > 0) && (
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-bold">🎯 Milestone Status</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* Schedule Milestones */}
+            <div className="rounded-xl bg-gradient-to-br from-violet-50 to-violet-100 p-4">
+              <p className="text-xs font-semibold text-violet-600 mb-3">📅 Schedule Milestones</p>
+              {(() => {
+                const ms = selectedReport?.milestonesSchedule || [];
+                const completed = ms.filter(m => m.status === 'Completed').length;
+                const onTrack = ms.filter(m => m.status === 'On Track').length;
+                const atRisk = ms.filter(m => m.status === 'At Risk').length;
+                const delayed = ms.filter(m => ['Delayed', 'Critical', 'Overdue'].includes(m.status)).length;
+                return (
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-green-600">{completed}</p><p className="text-[9px] text-slate-500">Done</p></div>
+                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-blue-600">{onTrack}</p><p className="text-[9px] text-slate-500">On Track</p></div>
+                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-amber-600">{atRisk}</p><p className="text-[9px] text-slate-500">At Risk</p></div>
+                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-red-600">{delayed}</p><p className="text-[9px] text-slate-500">Delayed</p></div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Payment Milestones */}
+            <div className="rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 p-4">
+              <p className="text-xs font-semibold text-amber-600 mb-3">💳 Payment Milestones</p>
+              {(() => {
+                const ms = selectedReport?.milestonesPayment || [];
+                const completed = ms.filter(m => m.status === 'Completed').length;
+                const onTrack = ms.filter(m => m.status === 'On Track').length;
+                const atRisk = ms.filter(m => m.status === 'At Risk').length;
+                const delayed = ms.filter(m => ['Delayed', 'Critical', 'Overdue'].includes(m.status)).length;
+                return (
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-green-600">{completed}</p><p className="text-[9px] text-slate-500">Done</p></div>
+                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-blue-600">{onTrack}</p><p className="text-[9px] text-slate-500">On Track</p></div>
+                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-amber-600">{atRisk}</p><p className="text-[9px] text-slate-500">At Risk</p></div>
+                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-red-600">{delayed}</p><p className="text-[9px] text-slate-500">Delayed</p></div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Activities Section */}
+      {(selectedReport?.thisWeekActivities || selectedReport?.nextWeekPlan) && (
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-bold">📝 Activities Summary</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* This Week */}
+            <div className="rounded-xl bg-gradient-to-br from-teal-50 to-teal-100 p-4">
+              <p className="text-xs font-semibold text-teal-600 mb-3">✅ This Week Completed</p>
+              <div className="space-y-2">
+                {(['engineering', 'procurement', 'construction', 'precommissioning'] as const).map(key => {
+                  const items = (selectedReport.thisWeekActivities as unknown as Record<string, string[]>)?.[key] || [];
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={key} className="rounded-lg bg-white p-2">
+                      <p className="text-[10px] font-semibold text-slate-600 capitalize mb-1">{key}</p>
+                      <ul className="text-[10px] text-slate-500 list-disc list-inside">
+                        {items.slice(0, 2).map((item, i) => <li key={i} className="truncate">{item}</li>)}
+                        {items.length > 2 && <li className="text-slate-400">+{items.length - 2} more...</li>}
+                      </ul>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Next Week */}
+            <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-4">
+              <p className="text-xs font-semibold text-blue-600 mb-3">📆 Next Week Plan</p>
+              <div className="space-y-2">
+                {(['engineering', 'procurement', 'construction', 'precommissioning'] as const).map(key => {
+                  const items = (selectedReport.nextWeekPlan as unknown as Record<string, string[]>)?.[key] || [];
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={key} className="rounded-lg bg-white p-2">
+                      <p className="text-[10px] font-semibold text-slate-600 capitalize mb-1">{key}</p>
+                      <ul className="text-[10px] text-slate-500 list-disc list-inside">
+                        {items.slice(0, 2).map((item, i) => <li key={i} className="truncate">{item}</li>)}
+                        {items.length > 2 && <li className="text-slate-400">+{items.length - 2} more...</li>}
+                      </ul>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
