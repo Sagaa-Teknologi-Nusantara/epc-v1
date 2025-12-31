@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { Project, Report } from '@/types';
 
 interface ReportContextType {
@@ -35,11 +36,16 @@ interface ReportContextProviderProps {
 }
 
 export function ReportContextProvider({ children }: ReportContextProviderProps) {
+    const searchParams = useSearchParams();
     const [projects, setProjects] = useState<Project[]>([]);
     const [reports, setReports] = useState<Report[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+
+    // Read URL params for project/report selection (for print-to-PDF feature)
+    const urlProjectId = searchParams.get('projectId');
+    const urlReportId = searchParams.get('reportId');
 
     // Fetch data on mount
     const fetchData = async () => {
@@ -115,9 +121,18 @@ export function ReportContextProvider({ children }: ReportContextProviderProps) 
             setProjects(transformedProjects);
             setReports(transformedReports);
 
-            // Auto-select latest report if none selected
-            if (transformedReports.length > 0 && !selectedReportId) {
-                const sorted = [...transformedReports].sort((a, b) => b.weekNo - a.weekNo);
+            // Priority: URL reportId > URL projectId (latest) > auto-select latest
+            if (urlReportId && transformedReports.find((r: Report) => r.id === urlReportId)) {
+                setSelectedReportId(urlReportId);
+            } else if (urlProjectId) {
+                // Get latest report for URL project
+                const projectReports = transformedReports.filter((r: Report) => r.projectId === urlProjectId);
+                if (projectReports.length > 0) {
+                    const sorted = [...projectReports].sort((a: Report, b: Report) => b.weekNo - a.weekNo);
+                    setSelectedReportId(sorted[0].id);
+                }
+            } else if (transformedReports.length > 0 && !selectedReportId) {
+                const sorted = [...transformedReports].sort((a: Report, b: Report) => b.weekNo - a.weekNo);
                 setSelectedReportId(sorted[0].id);
             }
         } catch (err) {
@@ -129,7 +144,7 @@ export function ReportContextProvider({ children }: ReportContextProviderProps) 
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [urlProjectId, urlReportId]);
 
     // Derived state
     const selectedReport = useMemo(() => {

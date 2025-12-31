@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useReportContext } from '@/contexts/ReportContext';
 import { Icons } from '@/components/ui/Icons';
+import { ExportPDFButton } from '@/components/ui/ExportPDFButton';
+import { PDFExporter } from '@/lib/pdf-export';
 
 // Trend Line Chart Component (SVG-based)
 interface TrendLine {
@@ -224,15 +226,16 @@ const TrendBarChart = ({ data, bars, title, height = 180 }: {
 
 export default function TrendPage() {
     const { projects, reports, loading } = useReportContext();
-    const [selectedProjectId, setSelectedProjectId] = useState<string>('all');
+    const [selectedProjectId, setSelectedProjectId] = useState<string>('');
     const [weekFrom, setWeekFrom] = useState<number>(1);
     const [weekTo, setWeekTo] = useState<number>(52);
+    const chartsRef = useRef<HTMLDivElement>(null);
 
     // Get project reports for selected project
     const projectReports = useMemo(() => {
         let filtered = reports;
 
-        if (selectedProjectId !== 'all') {
+        if (selectedProjectId) {
             filtered = reports.filter(r => r.projectId === selectedProjectId);
         }
 
@@ -346,6 +349,104 @@ export default function TrendPage() {
         return { min: Math.min(...weeks), max: Math.max(...weeks) };
     }, [reports]);
 
+    const selectedProject = projects.find(p => p.id === selectedProjectId);
+
+    // PDF Export handler - MUST be before any early returns to satisfy Rules of Hooks
+    const handleExportPDF = useCallback(async () => {
+        const exporter = new PDFExporter({
+            title: 'Trend Analysis',
+            projectName: selectedProject?.name,
+        });
+        exporter.addHeader();
+
+        // Summary
+        exporter.addSectionTitle('Analysis Summary');
+        exporter.addKeyValue('Project:', selectedProject?.name || 'N/A', true);
+        exporter.addKeyValue('Period:', `Week ${weekFrom} - ${weekTo}`);
+        exporter.addKeyValue('Data Points:', `${trendData.length} weeks`);
+        exporter.addSpacing();
+
+        if (trendData.length > 0) {
+            // Show Progress for all weeks
+            exporter.addSectionTitle('Progress Trend - All Weeks');
+            trendData.forEach((week, idx) => {
+                const variance = (week.actualProgress as number || 0) - (week.planProgress as number || 0);
+                exporter.addStatsRow([
+                    { label: week.week, value: '', status: 'neutral' },
+                    { label: 'Plan', value: `${(week.planProgress as number || 0).toFixed(1)}%`, status: 'neutral' },
+                    { label: 'Actual', value: `${(week.actualProgress as number || 0).toFixed(1)}%`, status: variance >= 0 ? 'good' : 'bad' },
+                    { label: 'Var', value: `${variance >= 0 ? '+' : ''}${variance.toFixed(1)}%`, status: variance >= 0 ? 'good' : 'bad' },
+                ]);
+            });
+            exporter.addSpacing();
+
+            // Show EVM for all weeks
+            exporter.addSectionTitle('EVM Performance - All Weeks');
+            trendData.forEach((week) => {
+                exporter.addStatsRow([
+                    { label: week.week, value: '', status: 'neutral' },
+                    { label: 'SPI', value: (week.spi as number || 1).toFixed(3), status: (week.spi as number) >= 1 ? 'good' : (week.spi as number) >= 0.9 ? 'warning' : 'bad' },
+                    { label: 'CPI', value: (week.cpi as number || 1).toFixed(3), status: (week.cpi as number) >= 1 ? 'good' : (week.cpi as number) >= 0.9 ? 'warning' : 'bad' },
+                ]);
+            });
+            exporter.addSpacing();
+
+            // Show Cash Flow for all weeks
+            exporter.addSectionTitle('Cash Flow - All Weeks');
+            trendData.forEach((week) => {
+                exporter.addStatsRow([
+                    { label: week.week, value: '', status: 'neutral' },
+                    { label: 'Out', value: `$${((week.cashOut as number || 0) / 1e6).toFixed(1)}M`, status: 'bad' },
+                    { label: 'In', value: `$${((week.cashIn as number || 0) / 1e6).toFixed(1)}M`, status: 'good' },
+                    { label: 'Balance', value: `$${((week.balance as number || 0) / 1e6).toFixed(1)}M`, status: (week.balance as number) >= 0 ? 'good' : 'bad' },
+                ]);
+            });
+            exporter.addSpacing();
+
+            // Show Safety for all weeks
+            exporter.addSectionTitle('Safety Trend - All Weeks');
+            trendData.forEach((week) => {
+                exporter.addStatsRow([
+                    { label: week.week, value: '', status: 'neutral' },
+                    { label: 'Safe Hrs', value: `${((week.safeHours as number) / 1000 || 0).toFixed(0)}K`, status: 'good' },
+                    { label: 'Manpower', value: String(week.manpower || 0), status: 'neutral' },
+                    { label: 'Near Miss', value: String(week.nearMiss || 0), status: 'neutral' },
+                ]);
+            });
+            exporter.addSpacing();
+
+            // Show Quality for all weeks
+            exporter.addSectionTitle('Quality Performance - All Weeks');
+            trendData.forEach((week) => {
+                exporter.addStatsRow([
+                    { label: week.week, value: '', status: 'neutral' },
+                    { label: 'Weld Rej', value: `${((week.weldingRejectionRate as number) || 0).toFixed(2)}%`, status: ((week.weldingRejectionRate as number) || 0) <= 2 ? 'good' : 'bad' },
+                    { label: 'NCR Open', value: String(week.ncrOpen || 0), status: (week.ncrOpen as number || 0) === 0 ? 'good' : 'warning' },
+                    { label: 'Punch Open', value: String(week.punchOpen || 0), status: (week.punchOpen as number || 0) === 0 ? 'good' : 'warning' },
+                ]);
+            });
+            exporter.addSpacing();
+
+            // Show TKDN for all weeks
+            exporter.addSectionTitle('TKDN Performance - All Weeks');
+            trendData.forEach((week) => {
+                const tkdnVar = (week.tkdnActual as number || 0) - (week.tkdnPlan as number || 0);
+                exporter.addStatsRow([
+                    { label: week.week, value: '', status: 'neutral' },
+                    { label: 'Target', value: `${(week.tkdnPlan as number || 0).toFixed(1)}%`, status: 'neutral' },
+                    { label: 'Actual', value: `${(week.tkdnActual as number || 0).toFixed(1)}%`, status: tkdnVar >= 0 ? 'good' : 'bad' },
+                    { label: 'Status', value: tkdnVar >= 0 ? 'OK' : 'RISK', status: tkdnVar >= 0 ? 'good' : 'bad' },
+                ]);
+            });
+        }
+
+        exporter.addSpacing();
+        exporter.addText(`Report generated: ${new Date().toLocaleString()}`, 'small');
+
+        const filename = `EPC_TrendAnalysis_W${weekFrom}-${weekTo}_${new Date().toISOString().split('T')[0]}.pdf`;
+        exporter.save(filename);
+    }, [selectedProjectId, selectedProject, weekFrom, weekTo, trendData]);
+
     if (loading) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
@@ -354,7 +455,8 @@ export default function TrendPage() {
         );
     }
 
-    const selectedProject = projects.find(p => p.id === selectedProjectId);
+    // selectedProject already defined above
+
 
     return (
         <div className="space-y-5">
@@ -367,7 +469,7 @@ export default function TrendPage() {
                             Trend Analysis
                         </h1>
                         <p className="text-sm text-teal-100 mt-1">
-                            {selectedProjectId === 'all' ? 'All Projects' : selectedProject?.name || 'Select Project'}
+                            {selectedProject?.name || 'Select Project'}
                             {' · '}Week {weekFrom} - {weekTo}
                         </p>
                     </div>
@@ -382,7 +484,7 @@ export default function TrendPage() {
                                 onChange={e => setSelectedProjectId(e.target.value)}
                                 className="rounded-lg border-0 bg-white/20 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-white/50"
                             >
-                                <option value="all" className="text-slate-800">All Projects</option>
+                                <option value="" className="text-slate-800">Select Project</option>
                                 {projects.map(p => (
                                     <option key={p.id} value={p.id} className="text-slate-800">{p.name}</option>
                                 ))}
@@ -414,6 +516,9 @@ export default function TrendPage() {
                                 className="w-20 rounded-lg border-0 bg-white/20 text-white px-3 py-2 text-sm focus:ring-2 focus:ring-white/50"
                             />
                         </div>
+
+                        {/* Export Button */}
+                        <ExportPDFButton onExport={handleExportPDF} label="Export PDF" />
                     </div>
                 </div>
             </div>

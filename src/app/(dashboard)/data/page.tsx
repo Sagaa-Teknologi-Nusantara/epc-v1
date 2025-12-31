@@ -28,15 +28,28 @@ export default function DataPage() {
             analysis: 'Risk Analysis'
         };
 
+        // Build URL with selected project/report query params
+        let url = urls[pageType];
+        const params = new URLSearchParams();
+        if (selectedProject?.id) {
+            params.set('projectId', selectedProject.id);
+        }
+        if (selectedReport?.id) {
+            params.set('reportId', selectedReport.id);
+        }
+        if (params.toString()) {
+            url += '?' + params.toString();
+        }
+
         // Open page in new window
-        const printWindow = window.open(urls[pageType], '_blank');
+        const printWindow = window.open(url, '_blank');
 
         if (!printWindow) {
             showNotif('Popup blocked. Please allow popups for PDF export.', 'error');
             return;
         }
 
-        showNotif(`Opening ${titles[pageType]} for print...`);
+        showNotif(`Opening ${titles[pageType]} for print with selected project/report...`);
 
         // Wait for page to load then trigger print
         printWindow.onload = () => {

@@ -1,8 +1,10 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useReportContext } from '@/contexts/ReportContext';
 import { ProjectReportSelector } from '@/components/ui/ProjectReportSelector';
+import { ExportPDFButton } from '@/components/ui/ExportPDFButton';
+import { PDFExporter } from '@/lib/pdf-export';
 
 interface RiskItem {
     category: string;
@@ -228,6 +230,120 @@ export default function AnalysisPage() {
         return grouped;
     }, [risks]);
 
+    // Extract metrics with proper defaults - MUST be before loading check for hooks
+    const evm = selectedReport?.evm || { spiValue: 1, cpiValue: 1, bac: 0, bcws: 0, bcwp: 0, acwp: 0 };
+    const hse = selectedReport?.hse || { lagging: { lti: 0 }, leading: {}, manpower: {}, trir: 0, safeHours: 0 };
+    const tkdn = selectedReport?.tkdn || { plan: 0, actual: 0 };
+    const cashFlow = selectedReport?.cashFlow || { overallStatus: 'green', overallScore: 0 };
+
+    // Status calculations - needed for PDF export callback
+    const cfStatus = cashFlow.overallStatus === 'green' ? 'HEALTHY' : cashFlow.overallStatus === 'yellow' ? 'AT RISK' : 'CRITICAL';
+    const safetyStatus = (hse.lagging?.lti || 0) === 0 ? 'GREEN' : 'RED';
+    const tkdnStatus = (tkdn.actual || 0) >= (tkdn.plan || 0) ? 'OK' : (tkdn.actual || 0) >= (tkdn.plan || 0) * 0.9 ? 'MONITOR' : 'AT RISK';
+
+    // PDF Export handler - MUST be before any early returns
+    const handleExportPDF = useCallback(async () => {
+        const exporter = new PDFExporter({
+            title: 'Risk Analysis',
+            weekNo: selectedReport?.weekNo,
+            projectName: selectedProject?.name,
+        });
+        exporter.addHeader();
+
+        // Risk Summary
+        exporter.addSectionTitle('Risk Summary');
+        exporter.addStatsRow([
+            { label: 'Critical', value: String(riskSummary.critical), status: riskSummary.critical > 0 ? 'bad' : 'good' },
+            { label: 'High', value: String(riskSummary.high), status: riskSummary.high > 0 ? 'warning' : 'good' },
+            { label: 'Medium', value: String(riskSummary.medium), status: 'neutral' },
+            { label: 'Low', value: String(riskSummary.low), status: 'good' },
+        ]);
+        exporter.addSpacing();
+
+        // Performance Indicators Row 1
+        exporter.addSectionTitle('Performance Indicators');
+        exporter.addStatsRow([
+            { label: 'Schedule (SPI)', value: `${(evm.spiValue || 1).toFixed(3)}`, status: (evm.spiValue || 1) >= 1 ? 'good' : (evm.spiValue || 1) >= 0.9 ? 'warning' : 'bad' },
+            { label: 'Cost (CPI)', value: `${(evm.cpiValue || 1).toFixed(3)}`, status: (evm.cpiValue || 1) >= 1 ? 'good' : (evm.cpiValue || 1) >= 0.9 ? 'warning' : 'bad' },
+            { label: 'Cash Flow', value: cfStatus, status: cfStatus === 'HEALTHY' ? 'good' : cfStatus === 'AT RISK' ? 'warning' : 'bad' },
+            { label: 'Safety', value: safetyStatus, status: safetyStatus === 'GREEN' ? 'good' : 'bad' },
+        ]);
+        exporter.addSpacing();
+
+        // Quality & TKDN
+        exporter.addSectionTitle('Quality & Compliance');
+        const qualityLocal = (selectedReport?.quality as unknown as Record<string, unknown>) || {};
+        const siteOfficeLocal = (qualityLocal.siteOffice as Record<string, unknown>) || {};
+        const weldingLocal = (siteOfficeLocal.welding as Record<string, number>) || {};
+        const ndtTotalLocal = (weldingLocal.ndtAccepted || 0) + (weldingLocal.ndtRejected || 0);
+        const rejRateLocal = ndtTotalLocal > 0 ? ((weldingLocal.ndtRejected || 0) / ndtTotalLocal) * 100 : 0;
+        const qualityStatusLocal = rejRateLocal <= (weldingLocal.rejectionRatePlan || 2) ? 'OK' : 'MONITOR';
+
+        exporter.addStatsRow([
+            { label: 'Quality', value: qualityStatusLocal, status: qualityStatusLocal === 'OK' ? 'good' : 'warning' },
+            { label: 'Weld Rej Rate', value: `${rejRateLocal.toFixed(2)}%`, status: rejRateLocal <= 2 ? 'good' : 'bad' },
+            { label: 'TKDN', value: tkdnStatus, status: tkdnStatus === 'OK' ? 'good' : tkdnStatus === 'MONITOR' ? 'warning' : 'bad' },
+            { label: 'TKDN Actual', value: `${(tkdn.actual || 0).toFixed(1)}%`, status: (tkdn.actual || 0) >= (tkdn.plan || 0) ? 'good' : 'bad' },
+        ]);
+        exporter.addSpacing();
+
+        // Milestone Analysis
+        const msScheduleLocal = (selectedReport?.milestonesSchedule as unknown as Record<string, unknown>[]) || [];
+        const msPaymentLocal = (selectedReport?.milestonesPayment as unknown as Record<string, unknown>[]) || [];
+
+        if (msScheduleLocal.length > 0 || msPaymentLocal.length > 0) {
+            exporter.addSectionTitle('Milestone Analysis');
+
+            // Schedule Milestones
+            const calcMsMetrics = (milestones: Record<string, unknown>[]) => {
+                let completed = 0, onTrack = 0, delayed = 0, totalDelay = 0;
+                milestones.forEach(ms => {
+                    const status = String(ms.status || '').toLowerCase();
+                    if (status === 'completed' || status === 'done') completed++;
+                    else if (status === 'delayed' || status === 'at risk') { delayed++; totalDelay += Number(ms.delay || 0); }
+                    else onTrack++;
+                });
+                return { completed, onTrack, delayed, total: milestones.length, avgDelay: delayed > 0 ? totalDelay / delayed : 0 };
+            };
+
+            const msSchedMetrics = calcMsMetrics(msScheduleLocal);
+            const msPayMetrics = calcMsMetrics(msPaymentLocal);
+
+            exporter.addText('Schedule Milestones:', 'normal');
+            exporter.addStatsRow([
+                { label: 'Completed', value: String(msSchedMetrics.completed), status: 'good' },
+                { label: 'On Track', value: String(msSchedMetrics.onTrack), status: 'neutral' },
+                { label: 'Delayed', value: String(msSchedMetrics.delayed), status: msSchedMetrics.delayed > 0 ? 'bad' : 'good' },
+                { label: 'Rate', value: `${msSchedMetrics.total > 0 ? ((msSchedMetrics.completed / msSchedMetrics.total) * 100).toFixed(0) : 0}%`, status: 'neutral' },
+            ]);
+
+            exporter.addText('Payment Milestones:', 'normal');
+            exporter.addStatsRow([
+                { label: 'Completed', value: String(msPayMetrics.completed), status: 'good' },
+                { label: 'On Track', value: String(msPayMetrics.onTrack), status: 'neutral' },
+                { label: 'Delayed', value: String(msPayMetrics.delayed), status: msPayMetrics.delayed > 0 ? 'bad' : 'good' },
+                { label: 'Rate', value: `${msPayMetrics.total > 0 ? ((msPayMetrics.completed / msPayMetrics.total) * 100).toFixed(0) : 0}%`, status: 'neutral' },
+            ]);
+            exporter.addSpacing();
+        }
+
+        // Detailed Risks
+        if (risks.length > 0) {
+            exporter.addSectionTitle('Risk Register');
+            risks.slice(0, 10).forEach(risk => {
+                exporter.addKeyValue(`[${risk.level}] ${risk.category}:`, risk.description);
+            });
+            if (risks.length > 10) {
+                exporter.addText(`... and ${risks.length - 10} more risks`, 'small');
+            }
+        } else {
+            exporter.addText('No risks identified - All indicators within acceptable thresholds', 'normal');
+        }
+
+        const filename = `EPC_RiskAnalysis_Week${selectedReport?.weekNo || ''}_${new Date().toISOString().split('T')[0]}.pdf`;
+        exporter.save(filename);
+    }, [selectedProject, selectedReport, riskSummary, risks, evm, tkdn, cfStatus, safetyStatus, tkdnStatus]);
+
     if (loading) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center">
@@ -236,11 +352,7 @@ export default function AnalysisPage() {
         );
     }
 
-    // Extract metrics with proper defaults
-    const evm = selectedReport?.evm || { spiValue: 1, cpiValue: 1, bac: 0, bcws: 0, bcwp: 0, acwp: 0 };
-    const hse = selectedReport?.hse || { lagging: { lti: 0 }, leading: {}, manpower: {}, trir: 0, safeHours: 0 };
-    const tkdn = selectedReport?.tkdn || { plan: 0, actual: 0 };
-    const cashFlow = selectedReport?.cashFlow || { overallStatus: 'green', overallScore: 0 };
+    // Additional metrics (variables already defined above)
     const quality = (selectedReport?.quality as unknown as Record<string, unknown>) || {};
     const siteOffice = (quality.siteOffice as Record<string, unknown>) || {};
     const welding = (siteOffice.welding as Record<string, number>) || {};
@@ -253,13 +365,10 @@ export default function AnalysisPage() {
     const ndtTotal = (welding.ndtAccepted || 0) + (welding.ndtRejected || 0);
     const rejRate = ndtTotal > 0 ? ((welding.ndtRejected || 0) / ndtTotal) * 100 : 0;
 
-    // Status calculations
+    // Status calculations for display
     const spiStatus = (evm.spiValue || 1) >= 1 ? 'OK' : (evm.spiValue || 1) >= 0.9 ? 'MONITOR' : 'AT RISK';
     const cpiStatus = (evm.cpiValue || 1) >= 1 ? 'OK' : 'MONITOR';
-    const cfStatus = cashFlow.overallStatus === 'green' ? 'HEALTHY' : cashFlow.overallStatus === 'yellow' ? 'AT RISK' : 'CRITICAL';
-    const safetyStatus = (hse.lagging?.lti || 0) === 0 ? 'GREEN' : 'RED';
     const qualityStatus = rejRate <= (welding.rejectionRatePlan || 2) ? 'OK' : 'MONITOR';
-    const tkdnStatus = (tkdn.actual || 0) >= (tkdn.plan || 0) ? 'OK' : (tkdn.actual || 0) >= (tkdn.plan || 0) * 0.9 ? 'MONITOR' : 'AT RISK';
 
     const getMsStatus = (metrics: MilestoneMetrics) => {
         if (metrics.total === 0) return { status: 'N/A', color: '#94a3b8', bg: 'from-slate-100 to-slate-200' };
@@ -308,7 +417,10 @@ export default function AnalysisPage() {
                     <h1 className="text-2xl font-extrabold">📊 Risk Analysis & Trend - Week {selectedReport?.weekNo || '-'}</h1>
                     <p className="text-sm text-slate-500">{selectedProject?.name || 'Select a project'}</p>
                 </div>
-                <ProjectReportSelector />
+                <div className="flex items-center gap-3">
+                    <ExportPDFButton onExport={handleExportPDF} label="Export PDF" />
+                    <ProjectReportSelector />
+                </div>
             </div>
 
             {/* Risk Summary Cards - Row 1 (4 cards) */}

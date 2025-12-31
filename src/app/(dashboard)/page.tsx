@@ -1,11 +1,113 @@
 'use client';
 
+import { useRef, useCallback } from 'react';
 import { useReportContext } from '@/contexts/ReportContext';
 import { ProjectReportSelector } from '@/components/ui/ProjectReportSelector';
 import { GaugeChart, SafetyPyramid, AreaChart } from '@/components/charts';
+import { ExportPDFButton } from '@/components/ui/ExportPDFButton';
+import { PDFExporter } from '@/lib/pdf-export';
 
 export default function DashboardPage() {
   const { selectedProject, selectedReport, loading, error } = useReportContext();
+  const sCurveRef = useRef<HTMLDivElement>(null);
+  const evmRef = useRef<HTMLDivElement>(null);
+
+  // PDF Export function
+  const handleExportPDF = useCallback(async () => {
+    const exporter = new PDFExporter({
+      title: 'Dashboard',
+      weekNo: selectedReport?.weekNo,
+      projectName: selectedProject?.name,
+      periodStart: selectedReport?.periodStart,
+      periodEnd: selectedReport?.periodEnd,
+    });
+
+    exporter.addHeader();
+
+    // Project Info
+    exporter.addSectionTitle('Project Information');
+    exporter.addKeyValue('Project Name:', selectedProject?.name || 'N/A', true);
+    exporter.addKeyValue('Owner:', selectedProject?.owner || 'N/A');
+    exporter.addKeyValue('Contractor:', selectedProject?.contractor || 'N/A');
+    exporter.addKeyValue('Contract Type:', selectedProject?.contractType || 'N/A');
+    exporter.addKeyValue('Contract Price:', `$${((selectedProject?.contractPrice || 0) / 1e6).toFixed(2)}M`);
+    exporter.addKeyValue('Duration:', `${selectedProject?.startDate || ''} - ${selectedProject?.finishDate || ''}`);
+    exporter.addSpacing();
+
+    // Progress Overview
+    const progress = selectedReport?.overallProgress || { plan: 0, actual: 0, variance: 0 };
+    exporter.addSectionTitle('Progress Overview');
+    const progressStatus = (progress.variance || 0) >= 0 ? 'good' : (progress.variance || 0) >= -5 ? 'warning' : 'bad';
+    exporter.addStatsRow([
+      { label: 'Plan', value: `${(progress.plan || 0).toFixed(1)}%`, status: 'neutral' },
+      { label: 'Actual', value: `${(progress.actual || 0).toFixed(1)}%`, status: progressStatus },
+      { label: 'Variance', value: `${(progress.variance || 0) >= 0 ? '+' : ''}${(progress.variance || 0).toFixed(1)}%`, status: progressStatus },
+    ]);
+    exporter.addSpacing();
+
+    // EVM
+    const evm = selectedReport?.evm || { spiValue: 1, cpiValue: 1, bac: 0, bcws: 0, bcwp: 0, acwp: 0 };
+    exporter.addSectionTitle('Earned Value Management');
+    const spiStatus = (evm.spiValue || 1) >= 1 ? 'good' : (evm.spiValue || 1) >= 0.9 ? 'warning' : 'bad';
+    const cpiStatus = (evm.cpiValue || 1) >= 1 ? 'good' : (evm.cpiValue || 1) >= 0.9 ? 'warning' : 'bad';
+    exporter.addStatsRow([
+      { label: 'SPI', value: (evm.spiValue || 1).toFixed(3), status: spiStatus },
+      { label: 'CPI', value: (evm.cpiValue || 1).toFixed(3), status: cpiStatus },
+      { label: 'BAC', value: `$${((evm.bac || 0) / 1e6).toFixed(1)}M`, status: 'neutral' },
+    ]);
+    exporter.addStatsRow([
+      { label: 'BCWS', value: `$${((evm.bcws || 0) / 1e6).toFixed(1)}M`, status: 'neutral' },
+      { label: 'BCWP', value: `$${((evm.bcwp || 0) / 1e6).toFixed(1)}M`, status: 'neutral' },
+      { label: 'ACWP', value: `$${((evm.acwp || 0) / 1e6).toFixed(1)}M`, status: 'neutral' },
+    ]);
+
+    // Try to capture S-Curve chart
+    if (sCurveRef.current) {
+      const svgEl = sCurveRef.current.querySelector('svg');
+      if (svgEl) {
+        exporter.addSpacing();
+        exporter.addSectionTitle('S-Curve Progress');
+        await exporter.addChart(svgEl, 180, 80);
+      }
+    }
+
+    // HSE
+    const hse = selectedReport?.hse || { lagging: {}, safeHours: 0, trir: 0, manpower: { total: 0 } };
+    const lagging = (hse.lagging || {}) as Record<string, number>;
+    exporter.addSectionTitle('HSE Summary');
+    exporter.addStatsRow([
+      { label: 'Fatality', value: String(lagging.fatality || 0), status: (lagging.fatality || 0) === 0 ? 'good' : 'bad' },
+      { label: 'LTI', value: String(lagging.lti || 0), status: (lagging.lti || 0) === 0 ? 'good' : 'bad' },
+      { label: 'Medical', value: String(lagging.medicalTreatment || 0), status: 'neutral' },
+      { label: 'First Aid', value: String(lagging.firstAid || 0), status: 'neutral' },
+    ]);
+    exporter.addText(`Safe Hours: ${(hse.safeHours || 0).toLocaleString()}  |  TRIR: ${(hse.trir || 0).toFixed(2)}  |  Manpower: ${(hse.manpower as { total?: number })?.total || 0}`, 'small');
+    exporter.addSpacing();
+
+    // TKDN
+    const tkdn = selectedReport?.tkdn || { plan: 0, actual: 0 };
+    exporter.addSectionTitle('TKDN Performance');
+    const tkdnStatus = (tkdn.actual || 0) >= (tkdn.plan || 0) ? 'good' : 'bad';
+    exporter.addStatsRow([
+      { label: 'Target', value: `${tkdn.plan || 0}%`, status: 'neutral' },
+      { label: 'Actual', value: `${(tkdn.actual || 0).toFixed(1)}%`, status: tkdnStatus },
+      { label: 'Status', value: (tkdn.actual || 0) >= (tkdn.plan || 0) ? 'PASS' : 'AT RISK', status: tkdnStatus },
+    ]);
+    exporter.addSpacing();
+
+    // Quality
+    const quality = (selectedReport?.quality || {}) as Record<string, Record<string, number>>;
+    exporter.addSectionTitle('Quality Summary');
+    exporter.addStatsRow([
+      { label: 'Certificates', value: String(quality?.certificate?.completed || 0), status: 'good' },
+      { label: 'Under Application', value: String(quality?.certificate?.underApplication || 0), status: 'warning' },
+      { label: 'Not Yet Applied', value: String(quality?.certificate?.notYetApplied || 0), status: 'neutral' },
+    ]);
+
+    // Save
+    const filename = `EPC_Dashboard_Week${selectedReport?.weekNo || ''}_${new Date().toISOString().split('T')[0]}.pdf`;
+    exporter.save(filename);
+  }, [selectedProject, selectedReport]);
 
   if (loading) {
     return (
@@ -53,7 +155,10 @@ export default function DashboardPage() {
             </p>
           )}
         </div>
-        <ProjectReportSelector />
+        <div className="flex items-center gap-3">
+          <ExportPDFButton onExport={handleExportPDF} label="Export PDF" />
+          <ProjectReportSelector />
+        </div>
       </div>
 
       {/* Project Info Cards */}
@@ -137,7 +242,7 @@ export default function DashboardPage() {
 
         {/* Cash Flow Status */}
         <div className={`rounded-2xl p-4 shadow-sm ${selectedReport?.cashFlow?.overallStatus === 'green' ? 'bg-green-50' :
-            selectedReport?.cashFlow?.overallStatus === 'yellow' ? 'bg-amber-50' : 'bg-red-50'
+          selectedReport?.cashFlow?.overallStatus === 'yellow' ? 'bg-amber-50' : 'bg-red-50'
           }`}>
           <p className="text-xs font-semibold text-slate-500">💵 Cash Flow</p>
           <p className="mt-2 text-lg font-extrabold">
@@ -153,7 +258,7 @@ export default function DashboardPage() {
       {/* Charts Row */}
       <div className="grid gap-5 lg:grid-cols-2">
         {/* S-Curve */}
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
+        <div ref={sCurveRef} className="rounded-2xl bg-white p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-bold">📈 S-Curve Progress</h3>
           {sCurveData.length > 0 ? (
             <AreaChart data={sCurveData} height={200} />
