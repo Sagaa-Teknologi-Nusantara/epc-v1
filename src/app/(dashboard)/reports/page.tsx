@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Icons } from '@/components/ui/Icons';
 import { useReports, useProjects } from '@/hooks';
-import { ReportModal } from '@/components/modals';
+import { ReportModal, ViewReportModal } from '@/components/modals';
 import type { Report } from '@/types';
 
 export default function ReportsPage() {
@@ -11,7 +11,9 @@ export default function ReportsPage() {
     const { projects } = useProjects();
     const [showModal, setShowModal] = useState(false);
     const [editingReport, setEditingReport] = useState<Report | null>(null);
+    const [viewingReport, setViewingReport] = useState<Report | null>(null);
     const [filterProjectId, setFilterProjectId] = useState<string>('all');
+
 
     // Filter reports by project
     const filteredReports = useMemo(() => {
@@ -139,6 +141,13 @@ export default function ReportsPage() {
                                     {r.status}
                                 </span>
                                 <button
+                                    onClick={() => setViewingReport(r)}
+                                    className="rounded-lg bg-teal-50 p-2 text-teal-600 hover:bg-teal-100"
+                                    title="View Report"
+                                >
+                                    <Icons.Eye className="h-3.5 w-3.5" />
+                                </button>
+                                <button
                                     onClick={() => openEdit(r)}
                                     className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-slate-200"
                                     title="Edit Report"
@@ -175,6 +184,13 @@ export default function ReportsPage() {
                 onSave={handleSave}
                 report={editingReport}
                 projects={projects}
+            />
+
+            <ViewReportModal
+                isOpen={!!viewingReport}
+                onClose={() => setViewingReport(null)}
+                report={viewingReport}
+                projectName={viewingReport ? getProjectName(viewingReport.projectId) : ''}
             />
         </div>
     );
