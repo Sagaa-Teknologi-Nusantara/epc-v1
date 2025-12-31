@@ -12,9 +12,23 @@ interface ViewProjectModalProps {
 export function ViewProjectModal({ isOpen, onClose, project }: ViewProjectModalProps) {
     if (!isOpen || !project) return null;
 
+    // Type casting for extended project properties
+    const extProject = project as unknown as {
+        technologyProvider?: string;
+        termOfPayment?: string;
+        ldDelay?: number;
+        ldPerformance?: number;
+        scopeByOwner?: string;
+        guaranteedPower?: number;
+        ntpDate?: string;
+        codDate?: string;
+        currency?: string;
+        description?: string;
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
-            <div className="w-[95%] max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
+            <div className="w-[95%] max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-xl" onClick={e => e.stopPropagation()}>
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-slate-200 bg-gradient-to-r from-teal-500 to-teal-600 p-4 text-white">
                     <div>
@@ -23,7 +37,7 @@ export function ViewProjectModal({ isOpen, onClose, project }: ViewProjectModalP
                     </div>
                     <div className="flex items-center gap-3">
                         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${project.status === 'Active' ? 'bg-green-500' :
-                            project.status === 'Completed' ? 'bg-blue-500' : 'bg-amber-500'
+                                project.status === 'Completed' ? 'bg-blue-500' : 'bg-amber-500'
                             }`}>
                             {project.status}
                         </span>
@@ -32,10 +46,11 @@ export function ViewProjectModal({ isOpen, onClose, project }: ViewProjectModalP
                 </div>
 
                 {/* Content */}
-                <div className="p-5 max-h-[70vh] overflow-y-auto bg-slate-50">
-                    {/* General Info */}
-                    <div className="rounded-xl bg-white p-4 shadow-sm mb-4">
-                        <h3 className="text-sm font-bold mb-3">📋 Project Information</h3>
+                <div className="p-5 max-h-[70vh] overflow-y-auto bg-slate-50 space-y-4">
+
+                    {/* General Information */}
+                    <div className="rounded-xl bg-white p-4 shadow-sm">
+                        <h3 className="text-sm font-bold mb-3 flex items-center gap-2">📋 General Information</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             <div className="rounded-lg bg-slate-50 p-3">
                                 <p className="text-[10px] text-slate-500">Project Name</p>
@@ -50,15 +65,21 @@ export function ViewProjectModal({ isOpen, onClose, project }: ViewProjectModalP
                                 <p className="text-sm font-semibold">{project.contractor || '-'}</p>
                             </div>
                             <div className="rounded-lg bg-slate-50 p-3">
+                                <p className="text-[10px] text-slate-500">Technology Provider</p>
+                                <p className="text-sm font-semibold">{extProject.technologyProvider || '-'}</p>
+                            </div>
+                            <div className="rounded-lg bg-slate-50 p-3">
                                 <p className="text-[10px] text-slate-500">Status</p>
-                                <p className="text-sm font-semibold">{project.status}</p>
+                                <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold ${project.status === 'Active' ? 'bg-green-100 text-green-600' :
+                                        project.status === 'Completed' ? 'bg-blue-100 text-blue-600' : 'bg-amber-100 text-amber-600'
+                                    }`}>{project.status}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Contract Details */}
-                    <div className="rounded-xl bg-white p-4 shadow-sm mb-4">
-                        <h3 className="text-sm font-bold mb-3">💼 Contract Details</h3>
+                    <div className="rounded-xl bg-white p-4 shadow-sm">
+                        <h3 className="text-sm font-bold mb-3 flex items-center gap-2">💼 Contract Details</h3>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             <div className="rounded-lg bg-teal-50 p-3">
                                 <p className="text-[10px] text-slate-500">Contract Type</p>
@@ -73,16 +94,35 @@ export function ViewProjectModal({ isOpen, onClose, project }: ViewProjectModalP
                                 <p className="text-lg font-bold text-blue-600">${((project.bac || 0) / 1e6).toFixed(2)}M</p>
                             </div>
                             <div className="rounded-lg bg-purple-50 p-3">
-                                <p className="text-[10px] text-slate-500">Currency</p>
-                                <p className="text-sm font-semibold text-purple-600">{(project as unknown as { currency?: string }).currency || 'USD'}</p>
+                                <p className="text-[10px] text-slate-500">Term of Payment</p>
+                                <p className="text-sm font-semibold text-purple-600">{extProject.termOfPayment || '-'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* LD (Liquidated Damages) */}
+                    <div className="rounded-xl bg-white p-4 shadow-sm">
+                        <h3 className="text-sm font-bold mb-3 flex items-center gap-2">⚠️ Liquidated Damages (LD)</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <div className="rounded-lg bg-red-50 p-3">
+                                <p className="text-[10px] text-slate-500">LD Delay ($/day)</p>
+                                <p className="text-lg font-bold text-red-600">${(extProject.ldDelay || 0).toLocaleString()}</p>
+                            </div>
+                            <div className="rounded-lg bg-amber-50 p-3">
+                                <p className="text-[10px] text-slate-500">LD Performance ($/kW)</p>
+                                <p className="text-lg font-bold text-amber-600">${(extProject.ldPerformance || 0).toLocaleString()}</p>
+                            </div>
+                            <div className="rounded-lg bg-orange-50 p-3">
+                                <p className="text-[10px] text-slate-500">Guaranteed Power</p>
+                                <p className="text-lg font-bold text-orange-600">{extProject.guaranteedPower || 0} MW</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Schedule */}
-                    <div className="rounded-xl bg-white p-4 shadow-sm mb-4">
-                        <h3 className="text-sm font-bold mb-3">📅 Schedule</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="rounded-xl bg-white p-4 shadow-sm">
+                        <h3 className="text-sm font-bold mb-3 flex items-center gap-2">📅 Schedule</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             <div className="rounded-lg bg-blue-50 p-3">
                                 <p className="text-[10px] text-slate-500">Start Date</p>
                                 <p className="text-sm font-semibold text-blue-600">{project.startDate || '-'}</p>
@@ -91,7 +131,15 @@ export function ViewProjectModal({ isOpen, onClose, project }: ViewProjectModalP
                                 <p className="text-[10px] text-slate-500">Finish Date</p>
                                 <p className="text-sm font-semibold text-amber-600">{project.finishDate || '-'}</p>
                             </div>
-                            <div className="rounded-lg bg-slate-100 p-3">
+                            <div className="rounded-lg bg-green-50 p-3">
+                                <p className="text-[10px] text-slate-500">NTP Date</p>
+                                <p className="text-sm font-semibold text-green-600">{extProject.ntpDate || '-'}</p>
+                            </div>
+                            <div className="rounded-lg bg-purple-50 p-3">
+                                <p className="text-[10px] text-slate-500">COD Date</p>
+                                <p className="text-sm font-semibold text-purple-600">{extProject.codDate || '-'}</p>
+                            </div>
+                            <div className="rounded-lg bg-slate-100 p-3 md:col-span-2">
                                 <p className="text-[10px] text-slate-500">Duration</p>
                                 <p className="text-sm font-semibold">
                                     {project.startDate && project.finishDate ?
@@ -101,13 +149,14 @@ export function ViewProjectModal({ isOpen, onClose, project }: ViewProjectModalP
                         </div>
                     </div>
 
-                    {/* Description */}
-                    {(project as unknown as { description?: string }).description && (
+                    {/* Scope By Owner */}
+                    {extProject.scopeByOwner && (
                         <div className="rounded-xl bg-white p-4 shadow-sm">
-                            <h3 className="text-sm font-bold mb-3">📝 Description</h3>
-                            <p className="text-sm text-slate-600">{(project as unknown as { description?: string }).description}</p>
+                            <h3 className="text-sm font-bold mb-3 flex items-center gap-2">🏗️ Scope By Owner</h3>
+                            <p className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3">{extProject.scopeByOwner}</p>
                         </div>
                     )}
+
                 </div>
 
                 {/* Footer */}
