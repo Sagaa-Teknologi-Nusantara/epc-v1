@@ -229,7 +229,13 @@ export default function TrendPage() {
     const [selectedProjectId, setSelectedProjectId] = useState<string>('');
     const [weekFrom, setWeekFrom] = useState<number>(1);
     const [weekTo, setWeekTo] = useState<number>(52);
-    const chartsRef = useRef<HTMLDivElement>(null);
+
+    // Refs for chart capture
+    const progressChartRef = useRef<HTMLDivElement>(null);
+    const evmChartRef = useRef<HTMLDivElement>(null);
+    const cashFlowChartRef = useRef<HTMLDivElement>(null);
+    const safetyChartRef = useRef<HTMLDivElement>(null);
+    const tkdnChartRef = useRef<HTMLDivElement>(null);
 
     // Get project reports for selected project
     const projectReports = useMemo(() => {
@@ -366,10 +372,31 @@ export default function TrendPage() {
         exporter.addKeyValue('Data Points:', `${trendData.length} weeks`);
         exporter.addSpacing();
 
+        // Helper to capture chart SVGs from a ref
+        const captureChart = async (ref: React.RefObject<HTMLDivElement | null>, title: string) => {
+            if (ref.current) {
+                const svgs = ref.current.querySelectorAll('svg');
+                if (svgs.length > 0) {
+                    exporter.addSectionTitle(title + ' - Charts');
+                    for (const svg of Array.from(svgs)) {
+                        try {
+                            await exporter.addChart(svg as SVGElement, 180, 70);
+                        } catch (e) {
+                            console.error('Failed to add chart:', e);
+                        }
+                    }
+                    exporter.addSpacing();
+                }
+            }
+        };
+
         if (trendData.length > 0) {
-            // Show Progress for all weeks
-            exporter.addSectionTitle('Progress Trend - All Weeks');
-            trendData.forEach((week, idx) => {
+            // Capture Progress Charts
+            await captureChart(progressChartRef, 'Progress Trend');
+
+            // Show Progress data for all weeks
+            exporter.addSectionTitle('Progress Data - All Weeks');
+            trendData.forEach((week) => {
                 const variance = (week.actualProgress as number || 0) - (week.planProgress as number || 0);
                 exporter.addStatsRow([
                     { label: week.week, value: '', status: 'neutral' },
@@ -380,8 +407,11 @@ export default function TrendPage() {
             });
             exporter.addSpacing();
 
+            // Capture EVM Charts
+            await captureChart(evmChartRef, 'EVM Performance');
+
             // Show EVM for all weeks
-            exporter.addSectionTitle('EVM Performance - All Weeks');
+            exporter.addSectionTitle('EVM Data - All Weeks');
             trendData.forEach((week) => {
                 exporter.addStatsRow([
                     { label: week.week, value: '', status: 'neutral' },
@@ -391,8 +421,11 @@ export default function TrendPage() {
             });
             exporter.addSpacing();
 
+            // Capture Cash Flow Charts
+            await captureChart(cashFlowChartRef, 'Cash Flow');
+
             // Show Cash Flow for all weeks
-            exporter.addSectionTitle('Cash Flow - All Weeks');
+            exporter.addSectionTitle('Cash Flow Data - All Weeks');
             trendData.forEach((week) => {
                 exporter.addStatsRow([
                     { label: week.week, value: '', status: 'neutral' },
@@ -403,8 +436,11 @@ export default function TrendPage() {
             });
             exporter.addSpacing();
 
+            // Capture Safety Charts
+            await captureChart(safetyChartRef, 'Safety Trend');
+
             // Show Safety for all weeks
-            exporter.addSectionTitle('Safety Trend - All Weeks');
+            exporter.addSectionTitle('Safety Data - All Weeks');
             trendData.forEach((week) => {
                 exporter.addStatsRow([
                     { label: week.week, value: '', status: 'neutral' },
@@ -415,20 +451,11 @@ export default function TrendPage() {
             });
             exporter.addSpacing();
 
-            // Show Quality for all weeks
-            exporter.addSectionTitle('Quality Performance - All Weeks');
-            trendData.forEach((week) => {
-                exporter.addStatsRow([
-                    { label: week.week, value: '', status: 'neutral' },
-                    { label: 'Weld Rej', value: `${((week.weldingRejectionRate as number) || 0).toFixed(2)}%`, status: ((week.weldingRejectionRate as number) || 0) <= 2 ? 'good' : 'bad' },
-                    { label: 'NCR Open', value: String(week.ncrOpen || 0), status: (week.ncrOpen as number || 0) === 0 ? 'good' : 'warning' },
-                    { label: 'Punch Open', value: String(week.punchOpen || 0), status: (week.punchOpen as number || 0) === 0 ? 'good' : 'warning' },
-                ]);
-            });
-            exporter.addSpacing();
+            // Capture TKDN Charts
+            await captureChart(tkdnChartRef, 'TKDN Performance');
 
             // Show TKDN for all weeks
-            exporter.addSectionTitle('TKDN Performance - All Weeks');
+            exporter.addSectionTitle('TKDN Data - All Weeks');
             trendData.forEach((week) => {
                 const tkdnVar = (week.tkdnActual as number || 0) - (week.tkdnPlan as number || 0);
                 exporter.addStatsRow([
@@ -537,7 +564,7 @@ export default function TrendPage() {
             ) : (
                 <>
                     {/* Progress Trend */}
-                    <div className="rounded-2xl bg-white p-5 shadow-sm">
+                    <div ref={progressChartRef} className="rounded-2xl bg-white p-5 shadow-sm">
                         <h3 className="font-bold text-green-600 border-b-2 border-green-500 pb-2 mb-4">📈 Progress Trend</h3>
                         <div className="grid md:grid-cols-2 gap-4">
                             <TrendLineChart
@@ -564,7 +591,7 @@ export default function TrendPage() {
                     </div>
 
                     {/* EVM Trend */}
-                    <div className="rounded-2xl bg-white p-5 shadow-sm">
+                    <div ref={evmChartRef} className="rounded-2xl bg-white p-5 shadow-sm">
                         <h3 className="font-bold text-amber-600 border-b-2 border-amber-500 pb-2 mb-4">📊 EVM Trend</h3>
                         <div className="grid md:grid-cols-2 gap-4">
                             <TrendLineChart
@@ -630,7 +657,7 @@ export default function TrendPage() {
                     </div>
 
                     {/* Cash Flow Trend */}
-                    <div className="rounded-2xl bg-white p-5 shadow-sm">
+                    <div ref={cashFlowChartRef} className="rounded-2xl bg-white p-5 shadow-sm">
                         <h3 className="font-bold text-pink-600 border-b-2 border-pink-500 pb-2 mb-4">💵 Cash Flow Trend</h3>
                         <div className="grid md:grid-cols-2 gap-4">
                             <TrendBarChart
@@ -654,7 +681,7 @@ export default function TrendPage() {
                     </div>
 
                     {/* Safety Trend */}
-                    <div className="rounded-2xl bg-white p-5 shadow-sm">
+                    <div ref={safetyChartRef} className="rounded-2xl bg-white p-5 shadow-sm">
                         <h3 className="font-bold text-blue-600 border-b-2 border-blue-500 pb-2 mb-4">🦺 Safety Trend</h3>
                         <div className="grid md:grid-cols-2 gap-4">
                             <TrendBarChart
@@ -725,7 +752,7 @@ export default function TrendPage() {
                     </div>
 
                     {/* TKDN Trend */}
-                    <div className="rounded-2xl bg-white p-5 shadow-sm">
+                    <div ref={tkdnChartRef} className="rounded-2xl bg-white p-5 shadow-sm">
                         <h3 className="font-bold text-cyan-600 border-b-2 border-cyan-500 pb-2 mb-4">🏭 TKDN Trend</h3>
                         <TrendLineChart
                             data={trendData}
