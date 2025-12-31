@@ -23,14 +23,17 @@ export function Sidebar() {
     return (
         <aside
             className={cn(
-                'fixed left-0 top-0 z-[100] min-h-screen bg-gradient-to-b from-teal-700 to-teal-800 p-5 transition-all duration-300',
-                collapsed ? 'w-[60px]' : 'w-[240px]'
+                'fixed left-0 top-0 z-[100] min-h-screen bg-gradient-to-b from-teal-700 to-teal-800 transition-all duration-300',
+                collapsed ? 'w-[70px] px-2 py-4' : 'w-[240px] p-5'
             )}
         >
             {/* Logo / Title */}
-            <div className="mb-8">
-                <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+            <div className={cn('mb-6', collapsed && 'flex justify-center')}>
+                <div className={cn('flex items-center', collapsed ? 'justify-center' : 'gap-3')}>
+                    <div className={cn(
+                        'flex items-center justify-center rounded-xl bg-white/20',
+                        collapsed ? 'h-10 w-10' : 'h-10 w-10'
+                    )}>
                         <span className="text-lg font-bold text-white">E</span>
                     </div>
                     {!collapsed && (
@@ -45,7 +48,11 @@ export function Sidebar() {
             {/* Toggle Button */}
             <button
                 onClick={() => setCollapsed(!collapsed)}
-                className="mb-6 flex w-full items-center justify-center rounded-lg p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                className={cn(
+                    'mb-4 flex items-center rounded-lg p-2 text-white/70 transition-colors hover:bg-white/10 hover:text-white',
+                    collapsed ? 'w-full justify-center' : 'w-full justify-center'
+                )}
+                title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
                 {collapsed ? (
                     <Icons.ChevronRight className="h-5 w-5" />
@@ -65,9 +72,11 @@ export function Sidebar() {
                             key={item.id}
                             href={item.href}
                             className={cn(
-                                'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-white/70 transition-all hover:bg-white/10 hover:text-white',
+                                'flex items-center rounded-lg text-sm font-medium text-white/70 transition-all hover:bg-white/10 hover:text-white',
+                                collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2.5',
                                 isActive && 'bg-white/20 text-white font-semibold'
                             )}
+                            title={collapsed ? item.label : undefined}
                         >
                             <Icon className="h-[18px] w-[18px] flex-shrink-0" />
                             {!collapsed && <span>{item.label}</span>}
@@ -75,16 +84,6 @@ export function Sidebar() {
                     );
                 })}
             </nav>
-
-            {/* Footer
-            {!collapsed && (
-                <div className="absolute bottom-6 left-4 right-4">
-                    <div className="rounded-lg bg-white/10 p-3">
-                        <p className="text-xs text-white/60">Need help?</p>
-                        <p className="text-sm font-medium text-white">View Documentation</p>
-                    </div>
-                </div>
-            )} */}
         </aside>
     );
 }

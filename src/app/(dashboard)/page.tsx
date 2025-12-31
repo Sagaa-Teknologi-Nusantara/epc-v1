@@ -34,41 +34,106 @@ export default function DashboardPage() {
     exporter.addKeyValue('Duration:', `${selectedProject?.startDate || ''} - ${selectedProject?.finishDate || ''}`);
     exporter.addSpacing();
 
-    // Progress Overview
+    // KPI Summary
     const progress = selectedReport?.overallProgress || { plan: 0, actual: 0, variance: 0 };
-    exporter.addSectionTitle('Progress Overview');
+    const evm = selectedReport?.evm || { spiValue: 1, cpiValue: 1, bac: 0, bcws: 0, bcwp: 0, acwp: 0 };
     const progressStatus = (progress.variance || 0) >= 0 ? 'good' : (progress.variance || 0) >= -5 ? 'warning' : 'bad';
+    const spiStatus = (evm.spiValue || 1) >= 1 ? 'good' : (evm.spiValue || 1) >= 0.9 ? 'warning' : 'bad';
+    const cpiStatus = (evm.cpiValue || 1) >= 1 ? 'good' : (evm.cpiValue || 1) >= 0.9 ? 'warning' : 'bad';
+
+    exporter.addSectionTitle('KPI Summary');
     exporter.addStatsRow([
-      { label: 'Plan', value: `${(progress.plan || 0).toFixed(1)}%`, status: 'neutral' },
-      { label: 'Actual', value: `${(progress.actual || 0).toFixed(1)}%`, status: progressStatus },
-      { label: 'Variance', value: `${(progress.variance || 0) >= 0 ? '+' : ''}${(progress.variance || 0).toFixed(1)}%`, status: progressStatus },
+      { label: 'Progress', value: `${(progress.actual || 0).toFixed(1)}%`, status: progressStatus },
+      { label: 'SPI', value: (evm.spiValue || 1).toFixed(3), status: spiStatus },
+      { label: 'CPI', value: (evm.cpiValue || 1).toFixed(3), status: cpiStatus },
+    ]);
+    exporter.addStatsRow([
+      { label: 'EAC', value: `$${(((evm as { eac?: number }).eac || evm.bac || 0) / 1e6).toFixed(2)}M`, status: 'neutral' },
+      { label: 'Safe Hours', value: `${((selectedReport?.hse?.safeHours || 0) / 1000).toFixed(0)}K`, status: 'neutral' },
+      { label: 'Cash Flow', value: selectedReport?.cashFlow?.overallStatus === 'green' ? 'Healthy' : selectedReport?.cashFlow?.overallStatus === 'yellow' ? 'Monitor' : 'At Risk', status: selectedReport?.cashFlow?.overallStatus === 'green' ? 'good' : selectedReport?.cashFlow?.overallStatus === 'yellow' ? 'warning' : 'bad' },
     ]);
     exporter.addSpacing();
 
-    // EVM
-    const evm = selectedReport?.evm || { spiValue: 1, cpiValue: 1, bac: 0, bcws: 0, bcwp: 0, acwp: 0 };
-    exporter.addSectionTitle('Earned Value Management');
-    const spiStatus = (evm.spiValue || 1) >= 1 ? 'good' : (evm.spiValue || 1) >= 0.9 ? 'warning' : 'bad';
-    const cpiStatus = (evm.cpiValue || 1) >= 1 ? 'good' : (evm.cpiValue || 1) >= 0.9 ? 'warning' : 'bad';
-    exporter.addStatsRow([
-      { label: 'SPI', value: (evm.spiValue || 1).toFixed(3), status: spiStatus },
-      { label: 'CPI', value: (evm.cpiValue || 1).toFixed(3), status: cpiStatus },
-      { label: 'BAC', value: `$${((evm.bac || 0) / 1e6).toFixed(1)}M`, status: 'neutral' },
-    ]);
-    exporter.addStatsRow([
-      { label: 'BCWS', value: `$${((evm.bcws || 0) / 1e6).toFixed(1)}M`, status: 'neutral' },
-      { label: 'BCWP', value: `$${((evm.bcwp || 0) / 1e6).toFixed(1)}M`, status: 'neutral' },
-      { label: 'ACWP', value: `$${((evm.acwp || 0) / 1e6).toFixed(1)}M`, status: 'neutral' },
-    ]);
+    // Schedule & LD Estimation
+    if (selectedProject) {
+      exporter.addSectionTitle('Schedule & LD Estimation');
+      const daysRemaining = selectedProject.finishDate ?
+        Math.ceil((new Date(selectedProject.finishDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
+      const adjustedDays = evm.spiValue > 0 ? Math.ceil(daysRemaining / evm.spiValue) : daysRemaining;
+      const delayDays = Math.max(0, adjustedDays - daysRemaining);
+      const ldRate = (selectedProject as unknown as { ldDelayRate?: number }).ldDelayRate || 0.001;
+      const ldAmount = delayDays * ldRate * (selectedProject.contractPrice || 0);
 
-    // Try to capture S-Curve chart
-    if (sCurveRef.current) {
-      const svgEl = sCurveRef.current.querySelector('svg');
-      if (svgEl) {
-        exporter.addSpacing();
-        exporter.addSectionTitle('S-Curve Progress');
-        await exporter.addChart(svgEl, 180, 80);
-      }
+      exporter.addKeyValue('Planned Finish:', selectedProject.finishDate || 'N/A');
+      exporter.addKeyValue('Delay Days:', delayDays <= 0 ? 'On Schedule' : `${delayDays} days`);
+      exporter.addKeyValue('LD Delay Estimation:', `$${(ldAmount / 1e6).toFixed(2)}M`);
+      exporter.addSpacing();
+    }
+
+    // EVM Details
+    exporter.addSectionTitle('Earned Value Management');
+    exporter.addStatsRow([
+      { label: 'BCWS', value: `$${((evm.bcws || 0) / 1e6).toFixed(2)}M`, status: 'neutral' },
+      { label: 'BCWP', value: `$${((evm.bcwp || 0) / 1e6).toFixed(2)}M`, status: 'neutral' },
+      { label: 'ACWP', value: `$${((evm.acwp || 0) / 1e6).toFixed(2)}M`, status: 'neutral' },
+      { label: 'BAC', value: `$${((evm.bac || 0) / 1e6).toFixed(2)}M`, status: 'neutral' },
+    ]);
+    exporter.addSpacing();
+
+    // Cash Flow Dashboard
+    if (selectedReport?.cashFlow) {
+      const cf = selectedReport.cashFlow;
+      exporter.addSectionTitle('Cash Flow Performance');
+      exporter.addStatsRow([
+        { label: 'Revenue', value: `$${((cf.revenue || evm.bcwp || 0) / 1e6).toFixed(2)}M`, status: 'good' },
+        { label: 'Cash Out', value: `$${((cf.cashOut || 0) / 1e6).toFixed(2)}M`, status: 'bad' },
+        { label: 'Billing', value: `$${((cf.billing || 0) / 1e6).toFixed(2)}M`, status: 'neutral' },
+        { label: 'Cash In', value: `$${((cf.cashIn || 0) / 1e6).toFixed(2)}M`, status: 'neutral' },
+      ]);
+      // Cash Flow KPIs
+      const balance = (cf.cashIn || 0) - (cf.cashOut || 0);
+      const billingCoverage = (cf.revenue || evm.bcwp || 1) > 0 ? (cf.billing || 0) / (cf.revenue || evm.bcwp || 1) : 0;
+      const cashCollection = (cf.billing || 1) > 0 ? (cf.cashIn || 0) / (cf.billing || 1) : 0;
+      const cashAdequacy = (cf.cashOut || 1) > 0 ? (cf.cashIn || 0) / (cf.cashOut || 1) : 0;
+      exporter.addStatsRow([
+        { label: 'Balance', value: `$${(balance / 1e6).toFixed(2)}M`, status: balance >= 0 ? 'good' : 'bad' },
+        { label: 'Billing Coverage', value: `${(billingCoverage * 100).toFixed(1)}%`, status: billingCoverage >= 0.9 ? 'good' : 'warning' },
+        { label: 'Cash Collection', value: `${(cashCollection * 100).toFixed(1)}%`, status: cashCollection >= 0.9 ? 'good' : 'warning' },
+        { label: 'Cash Adequacy', value: `${cashAdequacy.toFixed(2)}x`, status: cashAdequacy >= 1 ? 'good' : 'warning' },
+      ]);
+      exporter.addSpacing();
+    }
+
+    // TKDN
+    const tkdn = selectedReport?.tkdn || { plan: 0, actual: 0 };
+    if (tkdn.plan > 0 || tkdn.actual > 0) {
+      exporter.addSectionTitle('TKDN Performance');
+      const tkdnStatus = (tkdn.actual || 0) >= (tkdn.plan || 0) ? 'good' : 'bad';
+      const variance = (tkdn.actual || 0) - (tkdn.plan || 0);
+      exporter.addStatsRow([
+        { label: 'Target', value: `${tkdn.plan || 0}%`, status: 'neutral' },
+        { label: 'Actual', value: `${(tkdn.actual || 0).toFixed(1)}%`, status: tkdnStatus },
+        { label: 'Variance', value: `${variance >= 0 ? '+' : ''}${variance.toFixed(1)}%`, status: tkdnStatus },
+        { label: 'Status', value: (tkdn.actual || 0) >= (tkdn.plan || 0) ? 'PASS' : 'AT RISK', status: tkdnStatus },
+      ]);
+      exporter.addSpacing();
+    }
+
+    // EPCC Progress
+    if (selectedReport?.epcc) {
+      exporter.addSectionTitle('EPCC Progress');
+      const epcc = selectedReport.epcc as unknown as Record<string, { plan?: number; actual?: number; weight?: number }>;
+      const epccData = ['engineering', 'procurement', 'construction', 'commissioning'].map(key => {
+        const data = epcc[key] || {};
+        const variance = (data.actual || 0) - (data.plan || 0);
+        return {
+          label: key.charAt(0).toUpperCase() + key.slice(1),
+          value: `${(data.actual || 0).toFixed(1)}%`,
+          status: (variance >= 0 ? 'good' : variance >= -5 ? 'warning' : 'bad') as 'good' | 'warning' | 'bad'
+        };
+      });
+      exporter.addStatsRow(epccData);
+      exporter.addSpacing();
     }
 
     // HSE
@@ -84,17 +149,6 @@ export default function DashboardPage() {
     exporter.addText(`Safe Hours: ${(hse.safeHours || 0).toLocaleString()}  |  TRIR: ${(hse.trir || 0).toFixed(2)}  |  Manpower: ${(hse.manpower as { total?: number })?.total || 0}`, 'small');
     exporter.addSpacing();
 
-    // TKDN
-    const tkdn = selectedReport?.tkdn || { plan: 0, actual: 0 };
-    exporter.addSectionTitle('TKDN Performance');
-    const tkdnStatus = (tkdn.actual || 0) >= (tkdn.plan || 0) ? 'good' : 'bad';
-    exporter.addStatsRow([
-      { label: 'Target', value: `${tkdn.plan || 0}%`, status: 'neutral' },
-      { label: 'Actual', value: `${(tkdn.actual || 0).toFixed(1)}%`, status: tkdnStatus },
-      { label: 'Status', value: (tkdn.actual || 0) >= (tkdn.plan || 0) ? 'PASS' : 'AT RISK', status: tkdnStatus },
-    ]);
-    exporter.addSpacing();
-
     // Quality
     const quality = (selectedReport?.quality || {}) as Record<string, Record<string, number>>;
     exporter.addSectionTitle('Quality Summary');
@@ -103,6 +157,16 @@ export default function DashboardPage() {
       { label: 'Under Application', value: String(quality?.certificate?.underApplication || 0), status: 'warning' },
       { label: 'Not Yet Applied', value: String(quality?.certificate?.notYetApplied || 0), status: 'neutral' },
     ]);
+
+    // Try to capture S-Curve chart
+    if (sCurveRef.current) {
+      const svgEl = sCurveRef.current.querySelector('svg');
+      if (svgEl) {
+        exporter.addSpacing();
+        exporter.addSectionTitle('S-Curve Progress');
+        await exporter.addChart(svgEl, 180, 80);
+      }
+    }
 
     // Save
     const filename = `EPC_Dashboard_Week${selectedReport?.weekNo || ''}_${new Date().toISOString().split('T')[0]}.pdf`;
