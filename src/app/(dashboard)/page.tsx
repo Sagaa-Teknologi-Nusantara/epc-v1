@@ -161,10 +161,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Project Info Cards */}
+      {/* Project Info Cards - Enhanced */}
       {selectedProject && (
         <div className="rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 p-4 text-white">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
             <div className="rounded-lg bg-white/10 p-3">
               <p className="text-[10px] opacity-80">Owner</p>
               <p className="text-sm font-semibold">{selectedProject.owner || '-'}</p>
@@ -178,26 +178,35 @@ export default function DashboardPage() {
               <p className="text-sm font-semibold">{selectedProject.contractType || '-'}</p>
             </div>
             <div className="rounded-lg bg-white/10 p-3">
+              <p className="text-[10px] opacity-80">Term of Payment</p>
+              <p className="text-sm font-semibold">{(selectedProject as unknown as { termOfPayment?: string }).termOfPayment || 'NET 30'}</p>
+            </div>
+            <div className="rounded-lg bg-white/10 p-3">
               <p className="text-[10px] opacity-80">Contract Price</p>
               <p className="text-sm font-bold">${((selectedProject.contractPrice || 0) / 1e6).toFixed(2)}M</p>
             </div>
             <div className="rounded-lg bg-white/10 p-3">
-              <p className="text-[10px] opacity-80">Start Date</p>
-              <p className="text-sm font-semibold">{selectedProject.startDate || '-'}</p>
+              <p className="text-[10px] opacity-80">Duration</p>
+              <p className="text-sm font-semibold">{selectedProject.startDate} - {selectedProject.finishDate}</p>
             </div>
             <div className="rounded-lg bg-white/10 p-3">
-              <p className="text-[10px] opacity-80">Finish Date</p>
-              <p className="text-sm font-semibold">{selectedProject.finishDate || '-'}</p>
+              <p className="text-[10px] opacity-80">Guaranteed Power</p>
+              <p className="text-sm font-semibold">{(selectedProject as unknown as { guaranteedPower?: number }).guaranteedPower || 0} MW</p>
+            </div>
+            <div className="rounded-lg bg-white/10 p-3">
+              <p className="text-[10px] opacity-80">LD Rate (Delay)</p>
+              <p className="text-sm font-semibold">{((selectedProject as unknown as { ldDelayRate?: number }).ldDelayRate || 0.1) * 100}%/day</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* KPI Cards Row */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+
+      {/* KPI Cards Row - 6 Cards */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         {/* Overall Progress */}
         <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500">Overall Progress</p>
+          <p className="text-xs font-semibold text-slate-500">📈 Overall Progress</p>
           <div className="mt-2 flex items-end gap-2">
             <span className="text-3xl font-extrabold text-teal-600">{(overallProgress.actual || 0).toFixed(1)}%</span>
             <span className={`text-sm font-semibold ${(overallProgress.variance || 0) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
@@ -213,19 +222,36 @@ export default function DashboardPage() {
           <p className="mt-1 text-[10px] text-slate-400">Plan: {(overallProgress.plan || 0).toFixed(1)}%</p>
         </div>
 
-        {/* TKDN */}
-        <div className={`rounded-2xl p-4 shadow-sm ${(tkdn.actual || 0) >= (tkdn.plan || 0) ? 'bg-green-50' : 'bg-red-50'
-          }`}>
-          <p className="text-xs font-semibold text-slate-500">🏭 TKDN</p>
-          <div className="mt-2 flex items-end gap-2">
-            <span className={`text-3xl font-extrabold ${(tkdn.actual || 0) >= (tkdn.plan || 0) ? 'text-green-600' : 'text-red-600'
-              }`}>
-              {(tkdn.actual || 0).toFixed(1)}%
-            </span>
-            <span className="text-sm text-slate-500">/ {tkdn.plan || 0}%</span>
-          </div>
-          <p className="mt-2 text-xs font-semibold">
-            {(tkdn.actual || 0) >= (tkdn.plan || 0) ? '✅ MEMENUHI' : '❌ BELUM MEMENUHI'}
+        {/* SPI */}
+        <div className={`rounded-2xl p-4 shadow-sm ${evm.spiValue >= 1 ? 'bg-green-50' : evm.spiValue >= 0.9 ? 'bg-amber-50' : 'bg-red-50'}`}>
+          <p className="text-xs font-semibold text-slate-500">📊 SPI</p>
+          <p className={`mt-2 text-3xl font-extrabold ${evm.spiValue >= 1 ? 'text-green-600' : evm.spiValue >= 0.9 ? 'text-amber-600' : 'text-red-600'}`}>
+            {evm.spiValue.toFixed(3)}
+          </p>
+          <p className="mt-1 text-[10px] text-slate-400">
+            {evm.spiValue >= 1 ? '✅ Ahead' : evm.spiValue >= 0.9 ? '⚠️ Monitor' : '❌ Behind'}
+          </p>
+        </div>
+
+        {/* CPI */}
+        <div className={`rounded-2xl p-4 shadow-sm ${evm.cpiValue >= 1 ? 'bg-green-50' : evm.cpiValue >= 0.9 ? 'bg-amber-50' : 'bg-red-50'}`}>
+          <p className="text-xs font-semibold text-slate-500">💰 CPI</p>
+          <p className={`mt-2 text-3xl font-extrabold ${evm.cpiValue >= 1 ? 'text-green-600' : evm.cpiValue >= 0.9 ? 'text-amber-600' : 'text-red-600'}`}>
+            {evm.cpiValue.toFixed(3)}
+          </p>
+          <p className="mt-1 text-[10px] text-slate-400">
+            {evm.cpiValue >= 1 ? '✅ Under Budget' : evm.cpiValue >= 0.9 ? '⚠️ Monitor' : '❌ Over Budget'}
+          </p>
+        </div>
+
+        {/* EAC */}
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
+          <p className="text-xs font-semibold text-slate-500">📉 EAC</p>
+          <p className="mt-2 text-2xl font-extrabold text-slate-700">
+            ${(((evm as { eac?: number }).eac || evm.bac || 0) / 1e6).toFixed(2)}M
+          </p>
+          <p className="mt-1 text-[10px] text-slate-400">
+            BAC: ${((evm.bac || 0) / 1e6).toFixed(2)}M
           </p>
         </div>
 
@@ -236,7 +262,7 @@ export default function DashboardPage() {
             {((hse.safeHours || 0) / 1000).toFixed(0)}K
           </p>
           <p className="mt-1 text-[10px] text-slate-400">
-            TRIR: {(hse.trir || 0).toFixed(2)} | Manpower: {hse.manpower?.total || 0}
+            LTI: {(hse.lagging as Record<string, number>)?.lti || 0} | TRIR: {(hse.trir || 0).toFixed(2)}
           </p>
         </div>
 
@@ -254,6 +280,279 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
+
+
+      {/* Schedule & LD Estimation Section */}
+      {selectedProject && (
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-bold">⏱️ Schedule & LD Estimation</h3>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* Schedule Status */}
+            <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-4">
+              <p className="text-xs font-semibold text-blue-600 mb-2">📅 Planned Finish</p>
+              <p className="text-lg font-bold text-blue-700">{selectedProject.finishDate || '-'}</p>
+            </div>
+            {/* Estimated Completion */}
+            <div className="rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 p-4">
+              <p className="text-xs font-semibold text-amber-600 mb-2">📆 Estimated Completion</p>
+              <p className="text-lg font-bold text-amber-700">
+                {(() => {
+                  // Calculate estimated completion based on SPI
+                  const daysRemaining = selectedProject.finishDate ?
+                    Math.ceil((new Date(selectedProject.finishDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                  const adjustedDays = evm.spiValue > 0 ? Math.ceil(daysRemaining / evm.spiValue) : daysRemaining;
+                  const estDate = new Date();
+                  estDate.setDate(estDate.getDate() + adjustedDays);
+                  return estDate.toISOString().split('T')[0];
+                })()}
+              </p>
+            </div>
+            {/* Delay Days */}
+            <div className={`rounded-xl p-4 ${(() => {
+              const daysRemaining = selectedProject.finishDate ?
+                Math.ceil((new Date(selectedProject.finishDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
+              const adjustedDays = evm.spiValue > 0 ? Math.ceil(daysRemaining / evm.spiValue) : daysRemaining;
+              const delayDays = adjustedDays - daysRemaining;
+              return delayDays <= 0 ? 'bg-green-50' : delayDays <= 30 ? 'bg-amber-50' : 'bg-red-50';
+            })()}`}>
+              <p className="text-xs font-semibold text-slate-600 mb-2">⏰ Delay Days</p>
+              {(() => {
+                const daysRemaining = selectedProject.finishDate ?
+                  Math.ceil((new Date(selectedProject.finishDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                const adjustedDays = evm.spiValue > 0 ? Math.ceil(daysRemaining / evm.spiValue) : daysRemaining;
+                const delayDays = adjustedDays - daysRemaining;
+                return (
+                  <p className={`text-2xl font-bold ${delayDays <= 0 ? 'text-green-600' : delayDays <= 30 ? 'text-amber-600' : 'text-red-600'}`}>
+                    {delayDays <= 0 ? `${Math.abs(delayDays)} days ahead` : `${delayDays} days`}
+                  </p>
+                );
+              })()}
+            </div>
+            {/* LD Estimation */}
+            <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-4">
+              <p className="text-xs font-semibold text-red-600 mb-2">💸 LD Delay Est.</p>
+              {(() => {
+                const daysRemaining = selectedProject.finishDate ?
+                  Math.ceil((new Date(selectedProject.finishDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                const adjustedDays = evm.spiValue > 0 ? Math.ceil(daysRemaining / evm.spiValue) : daysRemaining;
+                const delayDays = Math.max(0, adjustedDays - daysRemaining);
+                const ldRate = (selectedProject as unknown as { ldDelayRate?: number }).ldDelayRate || 0.001;
+                const ldAmount = delayDays * ldRate * (selectedProject.contractPrice || 0);
+                return (
+                  <>
+                    <p className="text-xl font-bold text-red-700">${(ldAmount / 1e6).toFixed(2)}M</p>
+                    <p className="text-[10px] text-slate-500">{delayDays} days × {(ldRate * 100).toFixed(2)}%/day</p>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cash Flow Dashboard - 8 KPIs */}
+      {selectedReport?.cashFlow && (
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-bold">💵 Cash Flow Performance Dashboard</h3>
+          {/* Primary Values */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <div className="rounded-xl bg-green-50 p-4 text-center">
+              <p className="text-xs text-slate-500">Revenue (BCWP)</p>
+              <p className="text-xl font-extrabold text-green-600">${((selectedReport.cashFlow.revenue || evm.bcwp || 0) / 1e6).toFixed(2)}M</p>
+            </div>
+            <div className="rounded-xl bg-red-50 p-4 text-center">
+              <p className="text-xs text-slate-500">Cash Out</p>
+              <p className="text-xl font-extrabold text-red-600">${((selectedReport.cashFlow.cashOut || 0) / 1e6).toFixed(2)}M</p>
+            </div>
+            <div className="rounded-xl bg-blue-50 p-4 text-center">
+              <p className="text-xs text-slate-500">Billing</p>
+              <p className="text-xl font-extrabold text-blue-600">${((selectedReport.cashFlow.billing || 0) / 1e6).toFixed(2)}M</p>
+            </div>
+            <div className="rounded-xl bg-purple-50 p-4 text-center">
+              <p className="text-xs text-slate-500">Cash In</p>
+              <p className="text-xl font-extrabold text-purple-600">${((selectedReport.cashFlow.cashIn || 0) / 1e6).toFixed(2)}M</p>
+            </div>
+          </div>
+          {/* 8 KPI Indicators */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* A. Cash Flow Balance */}
+            {(() => {
+              const cf = selectedReport.cashFlow;
+              const balance = (cf.cashIn || 0) - (cf.cashOut || 0);
+              const status = balance >= 0 ? 'green' : 'red';
+              return (
+                <div className={`rounded-lg p-3 ${status === 'green' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                  <p className="text-[10px] text-slate-500">A. Cash Flow Balance</p>
+                  <p className={`text-lg font-bold ${status === 'green' ? 'text-green-600' : 'text-red-600'}`}>
+                    ${(balance / 1e6).toFixed(2)}M
+                  </p>
+                  <p className="text-[9px] text-slate-400">Cash In - Cash Out</p>
+                </div>
+              );
+            })()}
+            {/* B. Billing Coverage Ratio */}
+            {(() => {
+              const cf = selectedReport.cashFlow;
+              const ratio = (cf.revenue || evm.bcwp || 1) > 0 ? (cf.billing || 0) / (cf.revenue || evm.bcwp || 1) : 0;
+              const status = ratio >= 0.9 ? 'green' : ratio >= 0.7 ? 'amber' : 'red';
+              return (
+                <div className={`rounded-lg p-3 ${status === 'green' ? 'bg-green-50 border border-green-200' : status === 'amber' ? 'bg-amber-50 border border-amber-200' : 'bg-red-50 border border-red-200'}`}>
+                  <p className="text-[10px] text-slate-500">B. Billing Coverage</p>
+                  <p className={`text-lg font-bold ${status === 'green' ? 'text-green-600' : status === 'amber' ? 'text-amber-600' : 'text-red-600'}`}>
+                    {(ratio * 100).toFixed(1)}%
+                  </p>
+                  <p className="text-[9px] text-slate-400">Billing / Revenue</p>
+                </div>
+              );
+            })()}
+            {/* C. Cash Collection Ratio */}
+            {(() => {
+              const cf = selectedReport.cashFlow;
+              const ratio = (cf.billing || 1) > 0 ? (cf.cashIn || 0) / (cf.billing || 1) : 0;
+              const status = ratio >= 0.9 ? 'green' : ratio >= 0.7 ? 'amber' : 'red';
+              return (
+                <div className={`rounded-lg p-3 ${status === 'green' ? 'bg-green-50 border border-green-200' : status === 'amber' ? 'bg-amber-50 border border-amber-200' : 'bg-red-50 border border-red-200'}`}>
+                  <p className="text-[10px] text-slate-500">C. Cash Collection</p>
+                  <p className={`text-lg font-bold ${status === 'green' ? 'text-green-600' : status === 'amber' ? 'text-amber-600' : 'text-red-600'}`}>
+                    {(ratio * 100).toFixed(1)}%
+                  </p>
+                  <p className="text-[9px] text-slate-400">Cash In / Billing</p>
+                </div>
+              );
+            })()}
+            {/* D. Cash Adequacy Ratio */}
+            {(() => {
+              const cf = selectedReport.cashFlow;
+              const ratio = (cf.cashOut || 1) > 0 ? (cf.cashIn || 0) / (cf.cashOut || 1) : 0;
+              const status = ratio >= 1 ? 'green' : ratio >= 0.8 ? 'amber' : 'red';
+              return (
+                <div className={`rounded-lg p-3 ${status === 'green' ? 'bg-green-50 border border-green-200' : status === 'amber' ? 'bg-amber-50 border border-amber-200' : 'bg-red-50 border border-red-200'}`}>
+                  <p className="text-[10px] text-slate-500">D. Cash Adequacy</p>
+                  <p className={`text-lg font-bold ${status === 'green' ? 'text-green-600' : status === 'amber' ? 'text-amber-600' : 'text-red-600'}`}>
+                    {ratio.toFixed(2)}x
+                  </p>
+                  <p className="text-[9px] text-slate-400">Cash In / Cash Out</p>
+                </div>
+              );
+            })()}
+            {/* E. Cash Burn Rate */}
+            {(() => {
+              const cf = selectedReport.cashFlow;
+              const burnRate = cf.cashBurnRate || ((cf.cashOut || 0) / (selectedReport.weekNo || 1));
+              return (
+                <div className="rounded-lg p-3 bg-slate-50 border border-slate-200">
+                  <p className="text-[10px] text-slate-500">E. Cash Burn Rate</p>
+                  <p className="text-lg font-bold text-slate-600">${(burnRate / 1e6).toFixed(2)}M</p>
+                  <p className="text-[9px] text-slate-400">Per Week</p>
+                </div>
+              );
+            })()}
+            {/* F. Earned Cash Ratio */}
+            {(() => {
+              const cf = selectedReport.cashFlow;
+              const ratio = (evm.bcwp || 1) > 0 ? (cf.cashIn || 0) / (evm.bcwp || 1) : 0;
+              const status = ratio >= 0.8 ? 'green' : ratio >= 0.6 ? 'amber' : 'red';
+              return (
+                <div className={`rounded-lg p-3 ${status === 'green' ? 'bg-green-50 border border-green-200' : status === 'amber' ? 'bg-amber-50 border border-amber-200' : 'bg-red-50 border border-red-200'}`}>
+                  <p className="text-[10px] text-slate-500">F. Earned Cash Ratio</p>
+                  <p className={`text-lg font-bold ${status === 'green' ? 'text-green-600' : status === 'amber' ? 'text-amber-600' : 'text-red-600'}`}>
+                    {(ratio * 100).toFixed(1)}%
+                  </p>
+                  <p className="text-[9px] text-slate-400">Cash In / BCWP</p>
+                </div>
+              );
+            })()}
+            {/* G. Billing Lag */}
+            {(() => {
+              const cf = selectedReport.cashFlow;
+              const lag = (evm.bcwp || 0) - (cf.billing || 0);
+              const status = lag <= 0 ? 'green' : lag < (evm.bcwp || 1) * 0.1 ? 'amber' : 'red';
+              return (
+                <div className={`rounded-lg p-3 ${status === 'green' ? 'bg-green-50 border border-green-200' : status === 'amber' ? 'bg-amber-50 border border-amber-200' : 'bg-red-50 border border-red-200'}`}>
+                  <p className="text-[10px] text-slate-500">G. Billing Lag</p>
+                  <p className={`text-lg font-bold ${status === 'green' ? 'text-green-600' : status === 'amber' ? 'text-amber-600' : 'text-red-600'}`}>
+                    ${(lag / 1e6).toFixed(2)}M
+                  </p>
+                  <p className="text-[9px] text-slate-400">BCWP - Billing</p>
+                </div>
+              );
+            })()}
+            {/* H. Cash Gap */}
+            {(() => {
+              const cf = selectedReport.cashFlow;
+              const gap = (cf.cashOut || 0) - (cf.cashIn || 0);
+              const status = gap <= 0 ? 'green' : gap < (cf.cashOut || 1) * 0.2 ? 'amber' : 'red';
+              return (
+                <div className={`rounded-lg p-3 ${status === 'green' ? 'bg-green-50 border border-green-200' : status === 'amber' ? 'bg-amber-50 border border-amber-200' : 'bg-red-50 border border-red-200'}`}>
+                  <p className="text-[10px] text-slate-500">H. Cash Gap</p>
+                  <p className={`text-lg font-bold ${status === 'green' ? 'text-green-600' : status === 'amber' ? 'text-amber-600' : 'text-red-600'}`}>
+                    ${(gap / 1e6).toFixed(2)}M
+                  </p>
+                  <p className="text-[9px] text-slate-400">Cash Out - Cash In</p>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* TKDN Performance Section */}
+      {(tkdn.plan > 0 || tkdn.actual > 0) && (
+        <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <h3 className="mb-4 text-sm font-bold">🏭 TKDN Performance</h3>
+          <div className="grid gap-4 md:grid-cols-3">
+            {/* TKDN Gauge */}
+            <div className={`rounded-xl p-4 text-center ${(tkdn.actual || 0) >= (tkdn.plan || 0) ? 'bg-green-50 border-2 border-green-500' : 'bg-red-50 border-2 border-red-500'}`}>
+              <p className="text-xs text-slate-500 mb-2">TKDN Achievement</p>
+              <p className={`text-4xl font-extrabold ${(tkdn.actual || 0) >= (tkdn.plan || 0) ? 'text-green-600' : 'text-red-600'}`}>
+                {(tkdn.actual || 0).toFixed(1)}%
+              </p>
+              <div className="mt-3 h-3 rounded-full bg-slate-200 overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${(tkdn.actual || 0) >= (tkdn.plan || 0) ? 'bg-green-500' : 'bg-red-500'}`}
+                  style={{ width: `${Math.min((tkdn.actual || 0), 100)}%` }}
+                />
+              </div>
+              <p className="mt-2 text-xs text-slate-500">Target: {tkdn.plan}%</p>
+            </div>
+            {/* TKDN Info Box */}
+            <div className="rounded-xl bg-slate-50 p-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="text-center">
+                  <p className="text-xs text-blue-600">Target Minimum</p>
+                  <p className="text-2xl font-bold text-blue-600">{tkdn.plan}%</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-teal-600">Realisasi Aktual</p>
+                  <p className="text-2xl font-bold text-teal-600">{(tkdn.actual || 0).toFixed(1)}%</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-slate-500">Variance</p>
+                  <p className={`text-xl font-bold ${((tkdn.actual || 0) - (tkdn.plan || 0)) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {((tkdn.actual || 0) - (tkdn.plan || 0)) >= 0 ? '+' : ''}{((tkdn.actual || 0) - (tkdn.plan || 0)).toFixed(1)}%
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-slate-500">Achievement Rate</p>
+                  <p className="text-xl font-bold text-slate-600">
+                    {((tkdn.actual || 0) / (tkdn.plan || 1) * 100).toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+            </div>
+            {/* TKDN Status */}
+            <div className={`rounded-xl p-4 flex flex-col items-center justify-center ${(tkdn.actual || 0) >= (tkdn.plan || 0) ? 'bg-green-500' : 'bg-red-500'}`}>
+              <p className="text-4xl mb-2">{(tkdn.actual || 0) >= (tkdn.plan || 0) ? '✅' : '❌'}</p>
+              <p className="text-xl font-bold text-white">
+                {(tkdn.actual || 0) >= (tkdn.plan || 0) ? 'PASS' : 'AT RISK'}
+              </p>
+              <p className="text-xs text-white/80 mt-1">
+                {(tkdn.actual || 0) >= (tkdn.plan || 0) ? 'Memenuhi Target TKDN' : 'Belum Memenuhi Target'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* EPCC Progress Section */}
       {selectedReport?.epcc && (
