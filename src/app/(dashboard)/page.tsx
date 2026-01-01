@@ -834,93 +834,146 @@ export default function DashboardPage() {
       </div>
 
       {/* Quality NCR & Punch List Section */}
-      {selectedReport?.quality && (
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-bold">🔍 Quality Performance</h3>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {/* NCR Summary */}
-            <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-4">
-              <p className="text-xs font-semibold text-red-600 mb-2">📝 NCR Status</p>
-              {(() => {
-                const q = selectedReport.quality as unknown as { siteOffice?: { ncr?: { ownerToContractor?: Record<string, { open?: number; closed?: number }>; contractorToVendor?: Record<string, { open?: number; closed?: number }> } } };
-                const ncrOpen = (q?.siteOffice?.ncr?.ownerToContractor?.process?.open || 0) + (q?.siteOffice?.ncr?.contractorToVendor?.process?.open || 0);
-                const ncrClosed = (q?.siteOffice?.ncr?.ownerToContractor?.process?.closed || 0) + (q?.siteOffice?.ncr?.contractorToVendor?.process?.closed || 0);
-                return (
-                  <div className="flex justify-around">
-                    <div className="text-center">
-                      <p className="text-xl font-extrabold text-red-600">{ncrOpen}</p>
-                      <p className="text-[10px] text-slate-500">Open</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xl font-extrabold text-green-600">{ncrClosed}</p>
-                      <p className="text-[10px] text-slate-500">Closed</p>
-                    </div>
+      {selectedReport?.quality && (() => {
+        const q = selectedReport.quality as unknown as {
+          headOffice?: { afi?: Record<string, { fail?: number; ongoing?: number; pass?: number }>; ncr?: { ownerToContractor?: Record<string, { open?: number; closed?: number }>; contractorToVendor?: Record<string, { open?: number; closed?: number }> }; punchList?: { ownerToContractor?: Record<string, { open?: number; closed?: number }>; contractorToVendor?: Record<string, { open?: number; closed?: number }> } };
+          siteOffice?: { afi?: Record<string, { fail?: number; ongoing?: number; pass?: number }>; ncr?: { ownerToContractor?: Record<string, { open?: number; closed?: number }>; contractorToVendor?: Record<string, { open?: number; closed?: number }> }; punchList?: { ownerToContractor?: Record<string, { open?: number; closed?: number }>; contractorToVendor?: Record<string, { open?: number; closed?: number }> }; welding?: { ndtAccepted?: number; ndtRejected?: number; rejectionRatePlan?: number } };
+          certificate?: { completed?: number; underApplication?: number; notYetApplied?: number };
+        };
+        const disciplines = ['process', 'mechanical', 'piping', 'electrical', 'instrument', 'civil'];
+
+        // Calculate AFI totals
+        let hoAfiPass = 0, hoAfiTotal = 0, soAfiPass = 0, soAfiTotal = 0;
+        let hoNcrOpen = 0, hoNcrClosed = 0, soNcrOpen = 0, soNcrClosed = 0;
+        let hoPunchOpen = 0, hoPunchClosed = 0, soPunchOpen = 0, soPunchClosed = 0;
+
+        disciplines.forEach(d => {
+          const hoAfi = q?.headOffice?.afi?.[d] || {};
+          hoAfiTotal += (hoAfi.fail || 0) + (hoAfi.ongoing || 0) + (hoAfi.pass || 0);
+          hoAfiPass += (hoAfi.pass || 0);
+
+          const soAfi = q?.siteOffice?.afi?.[d] || {};
+          soAfiTotal += (soAfi.fail || 0) + (soAfi.ongoing || 0) + (soAfi.pass || 0);
+          soAfiPass += (soAfi.pass || 0);
+
+          ['ownerToContractor', 'contractorToVendor'].forEach(src => {
+            const hoNcr = q?.headOffice?.ncr?.[src as 'ownerToContractor' | 'contractorToVendor']?.[d] || {};
+            hoNcrOpen += hoNcr.open || 0;
+            hoNcrClosed += hoNcr.closed || 0;
+
+            const soNcr = q?.siteOffice?.ncr?.[src as 'ownerToContractor' | 'contractorToVendor']?.[d] || {};
+            soNcrOpen += soNcr.open || 0;
+            soNcrClosed += soNcr.closed || 0;
+
+            const hoPunch = q?.headOffice?.punchList?.[src as 'ownerToContractor' | 'contractorToVendor']?.[d] || {};
+            hoPunchOpen += hoPunch.open || 0;
+            hoPunchClosed += hoPunch.closed || 0;
+
+            const soPunch = q?.siteOffice?.punchList?.[src as 'ownerToContractor' | 'contractorToVendor']?.[d] || {};
+            soPunchOpen += soPunch.open || 0;
+            soPunchClosed += soPunch.closed || 0;
+          });
+        });
+
+        const welding = q?.siteOffice?.welding;
+        const ndtTotal = (welding?.ndtAccepted || 0) + (welding?.ndtRejected || 0);
+        const rejRate = ndtTotal > 0 ? ((welding?.ndtRejected || 0) / ndtTotal) * 100 : 0;
+        const weldPlan = welding?.rejectionRatePlan || 2;
+        const weldStatus = rejRate <= weldPlan ? 'Pass' : rejRate <= weldPlan * 1.5 ? 'Warning' : 'Fail';
+
+        const cert = q?.certificate;
+        const certTotal = (cert?.completed || 0) + (cert?.underApplication || 0) + (cert?.notYetApplied || 0);
+
+        return (
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-bold">🔍 Quality Performance Dashboard</h3>
+
+            {/* Head Office & Site Office Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              {/* Head Office */}
+              <div className="rounded-xl bg-teal-50 p-4">
+                <p className="text-xs font-semibold text-teal-700 mb-3">🏢 Head Office</p>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="rounded-lg bg-white p-2">
+                    <p className="text-slate-500">AFI Pass</p>
+                    <p className="text-lg font-bold text-teal-600">{hoAfiPass}/{hoAfiTotal}</p>
                   </div>
-                );
-              })()}
+                  <div className="rounded-lg bg-white p-2">
+                    <p className="text-slate-500">NCR Open</p>
+                    <p className={`text-lg font-bold ${hoNcrOpen > 0 ? 'text-red-600' : 'text-green-600'}`}>{hoNcrOpen}</p>
+                  </div>
+                  <div className="rounded-lg bg-white p-2">
+                    <p className="text-slate-500">Punch Open</p>
+                    <p className={`text-lg font-bold ${hoPunchOpen > 0 ? 'text-amber-600' : 'text-green-600'}`}>{hoPunchOpen}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Site Office */}
+              <div className="rounded-xl bg-purple-50 p-4">
+                <p className="text-xs font-semibold text-purple-700 mb-3">🏗️ Site Office</p>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div className="rounded-lg bg-white p-2">
+                    <p className="text-slate-500">AFI Pass</p>
+                    <p className="text-lg font-bold text-purple-600">{soAfiPass}/{soAfiTotal}</p>
+                  </div>
+                  <div className="rounded-lg bg-white p-2">
+                    <p className="text-slate-500">NCR Open</p>
+                    <p className={`text-lg font-bold ${soNcrOpen > 0 ? 'text-red-600' : 'text-green-600'}`}>{soNcrOpen}</p>
+                  </div>
+                  <div className="rounded-lg bg-white p-2">
+                    <p className="text-slate-500">Punch Open</p>
+                    <p className={`text-lg font-bold ${soPunchOpen > 0 ? 'text-amber-600' : 'text-green-600'}`}>{soPunchOpen}</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Punch List Summary */}
-            <div className="rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 p-4">
-              <p className="text-xs font-semibold text-amber-600 mb-2">📌 Punch List</p>
-              {(() => {
-                const q = selectedReport.quality as unknown as { siteOffice?: { punchList?: { ownerToContractor?: Record<string, { open?: number; closed?: number }>; contractorToVendor?: Record<string, { open?: number; closed?: number }> } } };
-                const punchOpen = (q?.siteOffice?.punchList?.ownerToContractor?.process?.open || 0) + (q?.siteOffice?.punchList?.contractorToVendor?.process?.open || 0);
-                const punchClosed = (q?.siteOffice?.punchList?.ownerToContractor?.process?.closed || 0) + (q?.siteOffice?.punchList?.contractorToVendor?.process?.closed || 0);
-                return (
-                  <div className="flex justify-around">
-                    <div className="text-center">
-                      <p className="text-xl font-extrabold text-amber-600">{punchOpen}</p>
-                      <p className="text-[10px] text-slate-500">Open</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xl font-extrabold text-green-600">{punchClosed}</p>
-                      <p className="text-[10px] text-slate-500">Closed</p>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Welding Rejection */}
-            <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-4">
-              <p className="text-xs font-semibold text-blue-600 mb-2">🔧 Welding Rejection</p>
-              {(() => {
-                const q = selectedReport.quality as unknown as { siteOffice?: { welding?: { ndtAccepted?: number; ndtRejected?: number; rejectionRatePlan?: number } } };
-                const welding = q?.siteOffice?.welding;
-                const total = (welding?.ndtAccepted || 0) + (welding?.ndtRejected || 0);
-                const rate = total > 0 ? ((welding?.ndtRejected || 0) / total) * 100 : 0;
-                const plan = welding?.rejectionRatePlan || 2;
-                return (
+            {/* Welding & Certificate Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Welding Performance */}
+              <div className={`rounded-xl p-4 ${weldStatus === 'Pass' ? 'bg-green-50 border-2 border-green-400' : weldStatus === 'Warning' ? 'bg-amber-50 border-2 border-amber-400' : 'bg-red-50 border-2 border-red-400'}`}>
+                <p className="text-xs font-semibold text-slate-700 mb-2">🔧 Welding Performance</p>
+                <div className="flex items-center justify-around">
                   <div className="text-center">
-                    <p className={`text-2xl font-extrabold ${rate <= plan ? 'text-green-600' : 'text-red-600'}`}>
-                      {rate.toFixed(2)}%
+                    <p className={`text-2xl font-extrabold ${weldStatus === 'Pass' ? 'text-green-600' : weldStatus === 'Warning' ? 'text-amber-600' : 'text-red-600'}`}>
+                      {weldStatus === 'Pass' ? '✅' : weldStatus === 'Warning' ? '⚠️' : '❌'} {rejRate.toFixed(2)}%
                     </p>
-                    <p className="text-[10px] text-slate-500">Plan: ≤{plan}%</p>
+                    <p className="text-[10px] text-slate-500">Target: ≤{weldPlan}% | NDT: {welding?.ndtAccepted || 0} acc / {welding?.ndtRejected || 0} rej</p>
                   </div>
-                );
-              })()}
-            </div>
+                </div>
+              </div>
 
-            {/* Certificate Progress */}
-            <div className="rounded-xl bg-gradient-to-br from-green-50 to-green-100 p-4">
-              <p className="text-xs font-semibold text-green-600 mb-2">📜 Certificates</p>
-              {(() => {
-                const q = selectedReport.quality as unknown as { certificate?: { completed?: number; underApplication?: number; notYetApplied?: number } };
-                const cert = q?.certificate;
-                const total = (cert?.completed || 0) + (cert?.underApplication || 0) + (cert?.notYetApplied || 0);
-                const pct = total > 0 ? ((cert?.completed || 0) / total) * 100 : 0;
-                return (
-                  <div className="text-center">
-                    <p className="text-2xl font-extrabold text-green-600">{pct.toFixed(1)}%</p>
-                    <p className="text-[10px] text-slate-500">{cert?.completed || 0}/{total} Completed</p>
+              {/* Certificate Progress */}
+              <div className="rounded-xl bg-purple-50 border-2 border-purple-400 p-4">
+                <p className="text-xs font-semibold text-purple-700 mb-2">📜 Certificate Status</p>
+                <div className="grid grid-cols-3 gap-2 text-center text-xs mb-2">
+                  <div className="rounded-lg bg-green-100 p-2">
+                    <p className="text-green-600 font-bold text-lg">{cert?.completed || 0}</p>
+                    <p className="text-[10px]">Completed</p>
                   </div>
-                );
-              })()}
+                  <div className="rounded-lg bg-amber-100 p-2">
+                    <p className="text-amber-600 font-bold text-lg">{cert?.underApplication || 0}</p>
+                    <p className="text-[10px]">Under App.</p>
+                  </div>
+                  <div className="rounded-lg bg-slate-100 p-2">
+                    <p className="text-slate-600 font-bold text-lg">{cert?.notYetApplied || 0}</p>
+                    <p className="text-[10px]">Not Yet</p>
+                  </div>
+                </div>
+                {certTotal > 0 && (
+                  <div className="h-3 bg-slate-200 rounded-full overflow-hidden flex">
+                    {(cert?.completed || 0) > 0 && <div className="bg-green-500" style={{ width: `${((cert?.completed || 0) / certTotal) * 100}%` }} />}
+                    {(cert?.underApplication || 0) > 0 && <div className="bg-amber-500" style={{ width: `${((cert?.underApplication || 0) / certTotal) * 100}%` }} />}
+                    {(cert?.notYetApplied || 0) > 0 && <div className="bg-slate-400" style={{ width: `${((cert?.notYetApplied || 0) / certTotal) * 100}%` }} />}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
+
 
       {/* Milestones Section */}
       {((selectedReport?.milestonesSchedule?.length ?? 0) > 0 || (selectedReport?.milestonesPayment?.length ?? 0) > 0) && (
