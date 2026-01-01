@@ -414,7 +414,44 @@ export default function DashboardPage() {
       {/* Cash Flow Dashboard - 8 KPIs */}
       {selectedReport?.cashFlow && (
         <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-bold">💵 Cash Flow Performance Dashboard</h3>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <h3 className="text-sm font-bold">💵 Cash Flow Performance Dashboard</h3>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Overall Status:</span>
+              {(() => {
+                const cf = selectedReport.cashFlow;
+                const cashIn = cf.cashIn || 0;
+                const cashOut = cf.cashOut || 0;
+                const billing = cf.billing || 0;
+                const revenue = cf.revenue || evm.bcwp || 1;
+
+                // Calculate ratios for overall score
+                const balanceOk = cashIn >= cashOut ? 1 : 0;
+                const billingCoverage = revenue > 0 ? billing / revenue : 0;
+                const billingOk = billingCoverage >= 0.95 ? 1 : billingCoverage >= 0.85 ? 0.5 : 0;
+                const collectionRatio = billing > 0 ? cashIn / billing : 0;
+                const collectionOk = collectionRatio >= 0.9 ? 1 : collectionRatio >= 0.8 ? 0.5 : 0;
+                const adequacyRatio = cashOut > 0 ? cashIn / cashOut : 0;
+                const adequacyOk = adequacyRatio >= 1.0 ? 1 : adequacyRatio >= 0.9 ? 0.5 : 0;
+
+                const overallScore = (balanceOk + billingOk + collectionOk + adequacyOk) / 4;
+                const overallStatus = overallScore >= 0.75 ? 'green' : overallScore >= 0.5 ? 'yellow' : 'red';
+
+                return (
+                  <>
+                    <span className="text-sm font-bold">
+                      {overallStatus === 'green' ? '🟢 Healthy' : overallStatus === 'yellow' ? '🟡 At Risk' : '🔴 Critical'}
+                    </span>
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${overallStatus === 'green' ? 'bg-green-100 text-green-600' :
+                        overallStatus === 'yellow' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
+                      }`}>
+                      {(overallScore * 100).toFixed(0)}%
+                    </span>
+                  </>
+                );
+              })()}
+            </div>
+          </div>
           {/* Primary Values */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             <div className="rounded-xl bg-green-50 p-4 text-center">
