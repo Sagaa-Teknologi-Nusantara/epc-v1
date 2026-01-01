@@ -39,6 +39,7 @@ export async function PUT(
         const { data, error } = await supabase
             .from('reports')
             .update({
+                project_id: body.projectId,
                 week_no: body.weekNo,
                 doc_no: body.docNo,
                 period_start: body.periodStart,

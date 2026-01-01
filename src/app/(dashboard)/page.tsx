@@ -722,7 +722,13 @@ export default function DashboardPage() {
         {/* S-Curve */}
         <div ref={sCurveRef} className="rounded-2xl bg-white p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-bold">📈 S-Curve Progress</h3>
-          {sCurveData.length > 0 ? (
+          {selectedReport?.uploads?.sCurveGeneral ? (
+            <img
+              src={(selectedReport.uploads.sCurveGeneral as { data: string }).data}
+              alt="S-Curve"
+              className="w-full h-48 object-contain rounded-lg bg-slate-50 cursor-pointer hover:opacity-90"
+            />
+          ) : sCurveData.length > 0 ? (
             <AreaChart data={sCurveData} height={200} />
           ) : (
             <div className="flex h-48 items-center justify-center text-slate-400">
