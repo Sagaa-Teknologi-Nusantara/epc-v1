@@ -1,16 +1,29 @@
 'use client';
 
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useState } from 'react';
 import { useReportContext } from '@/contexts/ReportContext';
 import { ProjectReportSelector } from '@/components/ui/ProjectReportSelector';
 import { GaugeChart, SafetyPyramid, AreaChart } from '@/components/charts';
 import { ExportPDFButton } from '@/components/ui/ExportPDFButton';
 import { PDFExporter } from '@/lib/pdf-export';
+import { ImageViewerModal } from '@/components/modals/ImageViewerModal';
 
 export default function DashboardPage() {
   const { selectedProject, selectedReport, loading, error } = useReportContext();
   const sCurveRef = useRef<HTMLDivElement>(null);
   const evmRef = useRef<HTMLDivElement>(null);
+
+  // Image viewer state
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string>('');
+  const [imageViewerTitle, setImageViewerTitle] = useState<string>('');
+
+  // Open image viewer
+  const openImageViewer = (src: string, title: string) => {
+    setSelectedImage(src);
+    setImageViewerTitle(title);
+    setImageViewerOpen(true);
+  };
 
   // PDF Export function
   const handleExportPDF = useCallback(async () => {
@@ -443,7 +456,7 @@ export default function DashboardPage() {
                       {overallStatus === 'green' ? '🟢 Healthy' : overallStatus === 'yellow' ? '🟡 At Risk' : '🔴 Critical'}
                     </span>
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${overallStatus === 'green' ? 'bg-green-100 text-green-600' :
-                        overallStatus === 'yellow' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
+                      overallStatus === 'yellow' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
                       }`}>
                       {(overallScore * 100).toFixed(0)}%
                     </span>
@@ -478,7 +491,13 @@ export default function DashboardPage() {
             <div className="rounded-xl bg-slate-50 p-4">
               <h4 className="text-xs font-semibold text-slate-600 mb-3">Cash Flow Chart</h4>
               {selectedReport.uploads?.cashFlow ? (
-                <img src={selectedReport.uploads.cashFlow.data} alt="Cash Flow" className="w-full h-24 object-contain rounded-lg" />
+                <img
+                  src={selectedReport.uploads.cashFlow.data}
+                  alt="Cash Flow"
+                  className="w-full h-24 object-contain rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => openImageViewer(selectedReport.uploads!.cashFlow!.data, 'Cash Flow Chart')}
+                  title="Click to enlarge"
+                />
               ) : (
                 <div className="space-y-2">
                   {[
@@ -523,7 +542,12 @@ export default function DashboardPage() {
                       <img
                         src={(selectedReport.uploads[qr.key as keyof typeof selectedReport.uploads] as { data: string })?.data}
                         alt={qr.label}
-                        className={`w-12 h-12 object-cover rounded border-2 ${qr.color}`}
+                        className={`w-12 h-12 object-cover rounded border-2 ${qr.color} cursor-pointer hover:opacity-80 transition-opacity`}
+                        onClick={() => openImageViewer(
+                          (selectedReport.uploads![qr.key as keyof typeof selectedReport.uploads] as { data: string })?.data,
+                          `QR Code - ${qr.label}`
+                        )}
+                        title="Click to enlarge"
                       />
                     ) : (
                       <div className={`w-12 h-12 bg-slate-200 rounded border-2 ${qr.color} flex items-center justify-center text-lg`}>📷</div>
@@ -763,7 +787,12 @@ export default function DashboardPage() {
             <img
               src={(selectedReport.uploads.sCurveGeneral as { data: string }).data}
               alt="S-Curve"
-              className="w-full h-48 object-contain rounded-lg bg-slate-50 cursor-pointer hover:opacity-90"
+              className="w-full h-48 object-contain rounded-lg bg-slate-50 cursor-pointer hover:opacity-90 transition-opacity"
+              onClick={() => openImageViewer(
+                (selectedReport.uploads!.sCurveGeneral as { data: string }).data,
+                'S-Curve Progress'
+              )}
+              title="Click to enlarge"
             />
           ) : sCurveData.length > 0 ? (
             <AreaChart data={sCurveData} height={200} />
@@ -1296,6 +1325,14 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Image Viewer Modal */}
+      <ImageViewerModal
+        isOpen={imageViewerOpen}
+        onClose={() => setImageViewerOpen(false)}
+        imageSrc={selectedImage}
+        imageTitle={imageViewerTitle}
+      />
     </div>
   );
 }
