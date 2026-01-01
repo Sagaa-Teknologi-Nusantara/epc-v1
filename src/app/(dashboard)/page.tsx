@@ -347,72 +347,69 @@ export default function DashboardPage() {
 
 
       {/* Schedule & LD Estimation Section */}
-      {selectedProject && (
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-bold">⏱️ Schedule & LD Estimation</h3>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {/* Schedule Status */}
-            <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-4">
-              <p className="text-xs font-semibold text-blue-600 mb-2">📅 Planned Finish</p>
-              <p className="text-lg font-bold text-blue-700">{selectedProject.finishDate || '-'}</p>
+      {selectedProject && (() => {
+        const daysRemaining = selectedProject.finishDate ?
+          Math.ceil((new Date(selectedProject.finishDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
+        const adjustedDays = evm.spiValue > 0 ? Math.ceil(daysRemaining / evm.spiValue) : daysRemaining;
+        const delayDays = Math.max(0, adjustedDays - daysRemaining);
+        const estDate = new Date();
+        estDate.setDate(estDate.getDate() + adjustedDays);
+        const estimatedCompletion = estDate.toISOString().split('T')[0];
+
+        const actualForecastPower = selectedReport?.actualForecastPower || 0;
+        const guaranteedPower = (selectedProject as unknown as { guaranteedPower?: number }).guaranteedPower || 0;
+        const powerShortfall = Math.max(0, guaranteedPower - actualForecastPower);
+
+        const ldDelayRate = (selectedProject as unknown as { ldDelay?: number }).ldDelay || 0;
+        const ldPerformanceRate = (selectedProject as unknown as { ldPerformance?: number }).ldPerformance || 0;
+        const ldDelay = delayDays * ldDelayRate;
+        const ldPerformance = powerShortfall * 1000 * ldPerformanceRate; // kW * $/kW
+        const totalLD = ldDelay + ldPerformance;
+
+        return (
+          <div className={`rounded-2xl p-5 shadow-sm ${totalLD > 0 ? 'bg-gradient-to-br from-red-50 to-red-100' : 'bg-gradient-to-br from-green-50 to-green-100'}`}>
+            <h3 className={`mb-4 text-sm font-bold ${totalLD > 0 ? 'text-red-700' : 'text-green-700'}`}>⏱️ Schedule & LD Estimation</h3>
+
+            {/* First Row */}
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4 mb-3">
+              <div className="rounded-xl bg-white p-3 text-center">
+                <p className="text-[10px] text-slate-500">Planned Finish</p>
+                <p className="text-sm font-bold">{selectedProject.finishDate || '-'}</p>
+              </div>
+              <div className="rounded-xl bg-white p-3 text-center">
+                <p className="text-[10px] text-slate-500">Estimated Completion</p>
+                <p className={`text-sm font-bold ${delayDays > 0 ? 'text-red-600' : 'text-green-600'}`}>{estimatedCompletion}</p>
+              </div>
+              <div className={`rounded-xl p-3 text-center ${delayDays <= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+                <p className="text-[10px] text-slate-500">Delay Days</p>
+                <p className={`text-xl font-extrabold ${delayDays <= 0 ? 'text-green-600' : 'text-red-600'}`}>{delayDays} days</p>
+              </div>
+              <div className="rounded-xl bg-white p-3 text-center">
+                <p className="text-[10px] text-slate-500">Actual/FC Power</p>
+                <p className={`text-sm font-bold ${actualForecastPower < guaranteedPower ? 'text-red-600' : 'text-green-600'}`}>{actualForecastPower} MW</p>
+              </div>
             </div>
-            {/* Estimated Completion */}
-            <div className="rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 p-4">
-              <p className="text-xs font-semibold text-amber-600 mb-2">📆 Estimated Completion</p>
-              <p className="text-lg font-bold text-amber-700">
-                {(() => {
-                  // Calculate estimated completion based on SPI
-                  const daysRemaining = selectedProject.finishDate ?
-                    Math.ceil((new Date(selectedProject.finishDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
-                  const adjustedDays = evm.spiValue > 0 ? Math.ceil(daysRemaining / evm.spiValue) : daysRemaining;
-                  const estDate = new Date();
-                  estDate.setDate(estDate.getDate() + adjustedDays);
-                  return estDate.toISOString().split('T')[0];
-                })()}
-              </p>
-            </div>
-            {/* Delay Days */}
-            <div className={`rounded-xl p-4 ${(() => {
-              const daysRemaining = selectedProject.finishDate ?
-                Math.ceil((new Date(selectedProject.finishDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
-              const adjustedDays = evm.spiValue > 0 ? Math.ceil(daysRemaining / evm.spiValue) : daysRemaining;
-              const delayDays = adjustedDays - daysRemaining;
-              return delayDays <= 0 ? 'bg-green-50' : delayDays <= 30 ? 'bg-amber-50' : 'bg-red-50';
-            })()}`}>
-              <p className="text-xs font-semibold text-slate-600 mb-2">⏰ Delay Days</p>
-              {(() => {
-                const daysRemaining = selectedProject.finishDate ?
-                  Math.ceil((new Date(selectedProject.finishDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
-                const adjustedDays = evm.spiValue > 0 ? Math.ceil(daysRemaining / evm.spiValue) : daysRemaining;
-                const delayDays = adjustedDays - daysRemaining;
-                return (
-                  <p className={`text-2xl font-bold ${delayDays <= 0 ? 'text-green-600' : delayDays <= 30 ? 'text-amber-600' : 'text-red-600'}`}>
-                    {delayDays <= 0 ? `${Math.abs(delayDays)} days ahead` : `${delayDays} days`}
-                  </p>
-                );
-              })()}
-            </div>
-            {/* LD Estimation */}
-            <div className="rounded-xl bg-gradient-to-br from-red-50 to-red-100 p-4">
-              <p className="text-xs font-semibold text-red-600 mb-2">💸 LD Delay Est.</p>
-              {(() => {
-                const daysRemaining = selectedProject.finishDate ?
-                  Math.ceil((new Date(selectedProject.finishDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
-                const adjustedDays = evm.spiValue > 0 ? Math.ceil(daysRemaining / evm.spiValue) : daysRemaining;
-                const delayDays = Math.max(0, adjustedDays - daysRemaining);
-                const ldRate = (selectedProject as unknown as { ldDelayRate?: number }).ldDelayRate || 0.001;
-                const ldAmount = delayDays * ldRate * (selectedProject.contractPrice || 0);
-                return (
-                  <>
-                    <p className="text-xl font-bold text-red-700">${(ldAmount / 1e6).toFixed(2)}M</p>
-                    <p className="text-[10px] text-slate-500">{delayDays} days × {(ldRate * 100).toFixed(2)}%/day</p>
-                  </>
-                );
-              })()}
+
+            {/* Second Row - LD Estimations */}
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className={`rounded-xl p-3 text-center ${ldDelay > 0 ? 'bg-red-100' : 'bg-green-100'}`}>
+                <p className="text-[10px] text-slate-500">LD Delay Estimation</p>
+                <p className={`text-lg font-extrabold ${ldDelay > 0 ? 'text-red-600' : 'text-green-600'}`}>${ldDelay.toLocaleString()}</p>
+                <p className="text-[9px] text-slate-400">{delayDays} days × ${ldDelayRate.toLocaleString()}/day</p>
+              </div>
+              <div className={`rounded-xl p-3 text-center ${ldPerformance > 0 ? 'bg-red-100' : 'bg-green-100'}`}>
+                <p className="text-[10px] text-slate-500">LD Performance Estimation</p>
+                <p className={`text-lg font-extrabold ${ldPerformance > 0 ? 'text-red-600' : 'text-green-600'}`}>${ldPerformance.toLocaleString()}</p>
+                <p className="text-[9px] text-slate-400">{powerShortfall.toFixed(1)} MW shortfall</p>
+              </div>
+              <div className={`rounded-xl p-3 text-center ${totalLD > 0 ? 'bg-red-600' : 'bg-green-600'}`}>
+                <p className="text-[10px] text-white/80">Total LD Estimation</p>
+                <p className="text-xl font-extrabold text-white">${totalLD.toLocaleString()}</p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Cash Flow Dashboard - 8 KPIs */}
       {selectedReport?.cashFlow && (
