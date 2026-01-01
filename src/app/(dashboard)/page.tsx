@@ -181,6 +181,76 @@ export default function DashboardPage() {
       }
     }
 
+    // Milestones
+    const msSchedule = (selectedReport?.milestonesSchedule || []) as Array<{ name?: string; planDate?: string; actualForecastDate?: string; status?: string }>;
+    const msPayment = (selectedReport?.milestonesPayment || []) as Array<{ name?: string; planDate?: string; actualForecastDate?: string; status?: string }>;
+
+    if (msSchedule.length > 0 || msPayment.length > 0) {
+      exporter.addSpacing();
+      exporter.addSectionTitle('Milestones');
+
+      if (msSchedule.length > 0) {
+        exporter.addText('Schedule Milestones:', 'normal');
+        msSchedule.slice(0, 8).forEach(m => {
+          const status = m.status === 'Completed' ? 'good' : m.status === 'Delay' ? 'bad' : 'neutral';
+          exporter.addStatsRow([
+            { label: m.name || 'Milestone', value: '', status: 'neutral' },
+            { label: 'Plan', value: m.planDate || '-', status: 'neutral' },
+            { label: 'Actual/FC', value: m.actualForecastDate || '-', status: 'neutral' },
+            { label: 'Status', value: m.status || '-', status: status as 'good' | 'bad' | 'neutral' },
+          ]);
+        });
+        if (msSchedule.length > 8) {
+          exporter.addText(`... and ${msSchedule.length - 8} more milestones`, 'small');
+        }
+      }
+
+      if (msPayment.length > 0) {
+        exporter.addSpacing(3);
+        exporter.addText('Payment Milestones:', 'normal');
+        msPayment.slice(0, 8).forEach(m => {
+          const status = m.status === 'Completed' ? 'good' : m.status === 'Delay' ? 'bad' : 'neutral';
+          exporter.addStatsRow([
+            { label: m.name || 'Payment', value: '', status: 'neutral' },
+            { label: 'Plan', value: m.planDate || '-', status: 'neutral' },
+            { label: 'Actual/FC', value: m.actualForecastDate || '-', status: 'neutral' },
+            { label: 'Status', value: m.status || '-', status: status as 'good' | 'bad' | 'neutral' },
+          ]);
+        });
+        if (msPayment.length > 8) {
+          exporter.addText(`... and ${msPayment.length - 8} more milestones`, 'small');
+        }
+      }
+    }
+
+    // Activities
+    const thisWeek = (selectedReport?.thisWeekActivities || {}) as Record<string, string[]>;
+    const nextWeek = (selectedReport?.nextWeekPlan || {}) as Record<string, string[]>;
+
+    if (Object.keys(thisWeek).length > 0 || Object.keys(nextWeek).length > 0) {
+      exporter.addSpacing();
+      exporter.addSectionTitle('Activities');
+
+      if (Object.keys(thisWeek).length > 0) {
+        exporter.addText('This Week Activities:', 'normal');
+        Object.entries(thisWeek).forEach(([cat, items]) => {
+          if (Array.isArray(items) && items.length > 0) {
+            exporter.addText(`${cat.charAt(0).toUpperCase() + cat.slice(1)}: ${items.slice(0, 3).join('; ')}${items.length > 3 ? '...' : ''}`, 'small');
+          }
+        });
+      }
+
+      if (Object.keys(nextWeek).length > 0) {
+        exporter.addSpacing(3);
+        exporter.addText('Next Week Plan:', 'normal');
+        Object.entries(nextWeek).forEach(([cat, items]) => {
+          if (Array.isArray(items) && items.length > 0) {
+            exporter.addText(`${cat.charAt(0).toUpperCase() + cat.slice(1)}: ${items.slice(0, 3).join('; ')}${items.length > 3 ? '...' : ''}`, 'small');
+          }
+        });
+      }
+    }
+
     // Save
     const filename = `EPC_Dashboard_Week${selectedReport?.weekNo || ''}_${new Date().toISOString().split('T')[0]}.pdf`;
     exporter.save(filename);
