@@ -82,7 +82,7 @@ export function ReportModal({ isOpen, onClose, onSave, report, projects }: Repor
                 uploads: {},
             });
         }
-    }, [report, projects]);
+    }, [report, projects, isOpen]);
 
     if (!isOpen) return null;
 
@@ -577,6 +577,46 @@ export function ReportModal({ isOpen, onClose, onSave, report, projects }: Repor
                                                             <td className="capitalize">{d.slice(0, 4)}</td>
                                                             <td><input type="number" className="w-10 rounded border px-1 text-center text-xs" value={ncr.open || ''} onChange={e => updateQuality(`${qualityTab}.ncr.contractorToVendor.${d}.open`, Number(e.target.value))} /></td>
                                                             <td><input type="number" className="w-10 rounded border px-1 text-center text-xs" value={ncr.closed || ''} onChange={e => updateQuality(`${qualityTab}.ncr.contractorToVendor.${d}.closed`, Number(e.target.value))} /></td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Punch List Tables */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="rounded-lg bg-amber-50 p-3">
+                                        <h6 className="font-semibold text-amber-700 mb-2 text-xs">📌 Punch List Owner→Contractor</h6>
+                                        <table className="w-full text-xs">
+                                            <thead><tr><th className="text-left">Disc</th><th className="w-12">Open</th><th className="w-12">Closed</th></tr></thead>
+                                            <tbody>
+                                                {disciplines.map(d => {
+                                                    const punch = quality[qualityTab]?.punchList?.ownerToContractor?.[d] || {};
+                                                    return (
+                                                        <tr key={d}>
+                                                            <td className="capitalize">{d.slice(0, 4)}</td>
+                                                            <td><input type="number" className="w-10 rounded border px-1 text-center text-xs" value={punch.open || ''} onChange={e => updateQuality(`${qualityTab}.punchList.ownerToContractor.${d}.open`, Number(e.target.value))} /></td>
+                                                            <td><input type="number" className="w-10 rounded border px-1 text-center text-xs" value={punch.closed || ''} onChange={e => updateQuality(`${qualityTab}.punchList.ownerToContractor.${d}.closed`, Number(e.target.value))} /></td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div className="rounded-lg bg-green-50 p-3">
+                                        <h6 className="font-semibold text-green-700 mb-2 text-xs">📌 Punch List Contractor→Vendor</h6>
+                                        <table className="w-full text-xs">
+                                            <thead><tr><th className="text-left">Disc</th><th className="w-12">Open</th><th className="w-12">Closed</th></tr></thead>
+                                            <tbody>
+                                                {disciplines.map(d => {
+                                                    const punch = quality[qualityTab]?.punchList?.contractorToVendor?.[d] || {};
+                                                    return (
+                                                        <tr key={d}>
+                                                            <td className="capitalize">{d.slice(0, 4)}</td>
+                                                            <td><input type="number" className="w-10 rounded border px-1 text-center text-xs" value={punch.open || ''} onChange={e => updateQuality(`${qualityTab}.punchList.contractorToVendor.${d}.open`, Number(e.target.value))} /></td>
+                                                            <td><input type="number" className="w-10 rounded border px-1 text-center text-xs" value={punch.closed || ''} onChange={e => updateQuality(`${qualityTab}.punchList.contractorToVendor.${d}.closed`, Number(e.target.value))} /></td>
                                                         </tr>
                                                     );
                                                 })}
