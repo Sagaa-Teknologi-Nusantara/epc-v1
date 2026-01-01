@@ -890,91 +890,232 @@ export default function DashboardPage() {
         const cert = q?.certificate;
         const certTotal = (cert?.completed || 0) + (cert?.underApplication || 0) + (cert?.notYetApplied || 0);
 
+        // Prepare discipline-level data for tables
+        const disciplineData = disciplines.map(d => {
+          const hoAfi = q?.headOffice?.afi?.[d] || { fail: 0, ongoing: 0, pass: 0 };
+          const soAfi = q?.siteOffice?.afi?.[d] || { fail: 0, ongoing: 0, pass: 0 };
+
+          const hoNcrO2C = q?.headOffice?.ncr?.ownerToContractor?.[d] || { open: 0, closed: 0 };
+          const hoNcrC2V = q?.headOffice?.ncr?.contractorToVendor?.[d] || { open: 0, closed: 0 };
+          const soNcrO2C = q?.siteOffice?.ncr?.ownerToContractor?.[d] || { open: 0, closed: 0 };
+          const soNcrC2V = q?.siteOffice?.ncr?.contractorToVendor?.[d] || { open: 0, closed: 0 };
+
+          const hoPunchO2C = q?.headOffice?.punchList?.ownerToContractor?.[d] || { open: 0, closed: 0 };
+          const hoPunchC2V = q?.headOffice?.punchList?.contractorToVendor?.[d] || { open: 0, closed: 0 };
+          const soPunchO2C = q?.siteOffice?.punchList?.ownerToContractor?.[d] || { open: 0, closed: 0 };
+          const soPunchC2V = q?.siteOffice?.punchList?.contractorToVendor?.[d] || { open: 0, closed: 0 };
+
+          return {
+            discipline: d,
+            hoAfi: { fail: hoAfi.fail || 0, ongoing: hoAfi.ongoing || 0, pass: hoAfi.pass || 0 },
+            soAfi: { fail: soAfi.fail || 0, ongoing: soAfi.ongoing || 0, pass: soAfi.pass || 0 },
+            hoNcr: { open: (hoNcrO2C.open || 0) + (hoNcrC2V.open || 0), closed: (hoNcrO2C.closed || 0) + (hoNcrC2V.closed || 0) },
+            soNcr: { open: (soNcrO2C.open || 0) + (soNcrC2V.open || 0), closed: (soNcrO2C.closed || 0) + (soNcrC2V.closed || 0) },
+            hoPunch: { open: (hoPunchO2C.open || 0) + (hoPunchC2V.open || 0), closed: (hoPunchO2C.closed || 0) + (hoPunchC2V.closed || 0) },
+            soPunch: { open: (soPunchO2C.open || 0) + (soPunchC2V.open || 0), closed: (soPunchO2C.closed || 0) + (soPunchC2V.closed || 0) },
+          };
+        });
+
         return (
           <div className="rounded-2xl bg-white p-5 shadow-sm">
             <h3 className="mb-4 text-sm font-bold">🔍 Quality Performance Dashboard</h3>
 
-            {/* Head Office & Site Office Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              {/* Head Office */}
+            {/* AFI Status by Discipline */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+              {/* Head Office AFI */}
               <div className="rounded-xl bg-teal-50 p-4">
-                <p className="text-xs font-semibold text-teal-700 mb-3">🏢 Head Office</p>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="rounded-lg bg-white p-2">
-                    <p className="text-slate-500">AFI Pass</p>
-                    <p className="text-lg font-bold text-teal-600">{hoAfiPass}/{hoAfiTotal}</p>
-                  </div>
-                  <div className="rounded-lg bg-white p-2">
-                    <p className="text-slate-500">NCR Open</p>
-                    <p className={`text-lg font-bold ${hoNcrOpen > 0 ? 'text-red-600' : 'text-green-600'}`}>{hoNcrOpen}</p>
-                  </div>
-                  <div className="rounded-lg bg-white p-2">
-                    <p className="text-slate-500">Punch Open</p>
-                    <p className={`text-lg font-bold ${hoPunchOpen > 0 ? 'text-amber-600' : 'text-green-600'}`}>{hoPunchOpen}</p>
-                  </div>
+                <p className="text-xs font-semibold text-teal-700 mb-3">🏢 Head Office - AFI Status</p>
+                <div className="space-y-2">
+                  {disciplineData.map(d => {
+                    const total = d.hoAfi.fail + d.hoAfi.ongoing + d.hoAfi.pass;
+                    return total > 0 && (
+                      <div key={d.discipline} className="flex items-center gap-2">
+                        <span className="text-[10px] w-20 capitalize text-slate-600">{d.discipline}</span>
+                        <div className="flex-1 h-4 bg-slate-200 rounded-full overflow-hidden flex">
+                          {d.hoAfi.pass > 0 && <div className="bg-green-500" style={{ width: `${(d.hoAfi.pass / total) * 100}%` }} />}
+                          {d.hoAfi.ongoing > 0 && <div className="bg-amber-500" style={{ width: `${(d.hoAfi.ongoing / total) * 100}%` }} />}
+                          {d.hoAfi.fail > 0 && <div className="bg-red-500" style={{ width: `${(d.hoAfi.fail / total) * 100}%` }} />}
+                        </div>
+                        <span className="text-[10px] w-16 text-right">{d.hoAfi.pass}/{total}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-center gap-4 mt-3 text-[9px]">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full"></span> Pass</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> Ongoing</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 bg-red-500 rounded-full"></span> Fail</span>
                 </div>
               </div>
 
-              {/* Site Office */}
+              {/* Site Office AFI */}
               <div className="rounded-xl bg-purple-50 p-4">
-                <p className="text-xs font-semibold text-purple-700 mb-3">🏗️ Site Office</p>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <div className="rounded-lg bg-white p-2">
-                    <p className="text-slate-500">AFI Pass</p>
-                    <p className="text-lg font-bold text-purple-600">{soAfiPass}/{soAfiTotal}</p>
-                  </div>
-                  <div className="rounded-lg bg-white p-2">
-                    <p className="text-slate-500">NCR Open</p>
-                    <p className={`text-lg font-bold ${soNcrOpen > 0 ? 'text-red-600' : 'text-green-600'}`}>{soNcrOpen}</p>
-                  </div>
-                  <div className="rounded-lg bg-white p-2">
-                    <p className="text-slate-500">Punch Open</p>
-                    <p className={`text-lg font-bold ${soPunchOpen > 0 ? 'text-amber-600' : 'text-green-600'}`}>{soPunchOpen}</p>
-                  </div>
+                <p className="text-xs font-semibold text-purple-700 mb-3">🏗️ Site Office - AFI Status</p>
+                <div className="space-y-2">
+                  {disciplineData.map(d => {
+                    const total = d.soAfi.fail + d.soAfi.ongoing + d.soAfi.pass;
+                    return total > 0 && (
+                      <div key={d.discipline} className="flex items-center gap-2">
+                        <span className="text-[10px] w-20 capitalize text-slate-600">{d.discipline}</span>
+                        <div className="flex-1 h-4 bg-slate-200 rounded-full overflow-hidden flex">
+                          {d.soAfi.pass > 0 && <div className="bg-green-500" style={{ width: `${(d.soAfi.pass / total) * 100}%` }} />}
+                          {d.soAfi.ongoing > 0 && <div className="bg-amber-500" style={{ width: `${(d.soAfi.ongoing / total) * 100}%` }} />}
+                          {d.soAfi.fail > 0 && <div className="bg-red-500" style={{ width: `${(d.soAfi.fail / total) * 100}%` }} />}
+                        </div>
+                        <span className="text-[10px] w-16 text-right">{d.soAfi.pass}/{total}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex justify-center gap-4 mt-3 text-[9px]">
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full"></span> Pass</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 bg-amber-500 rounded-full"></span> Ongoing</span>
+                  <span className="flex items-center gap-1"><span className="w-2 h-2 bg-red-500 rounded-full"></span> Fail</span>
                 </div>
               </div>
             </div>
 
-            {/* Welding & Certificate Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Welding Performance */}
-              <div className={`rounded-xl p-4 ${weldStatus === 'Pass' ? 'bg-green-50 border-2 border-green-400' : weldStatus === 'Warning' ? 'bg-amber-50 border-2 border-amber-400' : 'bg-red-50 border-2 border-red-400'}`}>
-                <p className="text-xs font-semibold text-slate-700 mb-2">🔧 Welding Performance</p>
-                <div className="flex items-center justify-around">
-                  <div className="text-center">
-                    <p className={`text-2xl font-extrabold ${weldStatus === 'Pass' ? 'text-green-600' : weldStatus === 'Warning' ? 'text-amber-600' : 'text-red-600'}`}>
-                      {weldStatus === 'Pass' ? '✅' : weldStatus === 'Warning' ? '⚠️' : '❌'} {rejRate.toFixed(2)}%
-                    </p>
-                    <p className="text-[10px] text-slate-500">Target: ≤{weldPlan}% | NDT: {welding?.ndtAccepted || 0} acc / {welding?.ndtRejected || 0} rej</p>
-                  </div>
-                </div>
+            {/* NCR & Punch by Discipline */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+              {/* Head Office NCR & Punch */}
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold text-slate-700 mb-3">🏢 Head Office - NCR & Punch List</p>
+                <table className="w-full text-[10px]">
+                  <thead>
+                    <tr className="bg-slate-200">
+                      <th className="p-1.5 text-left">Discipline</th>
+                      <th className="p-1.5 text-center" colSpan={2}>NCR</th>
+                      <th className="p-1.5 text-center" colSpan={2}>Punch</th>
+                    </tr>
+                    <tr className="bg-slate-100">
+                      <th></th>
+                      <th className="p-1 text-center text-red-600">Open</th>
+                      <th className="p-1 text-center text-green-600">Closed</th>
+                      <th className="p-1 text-center text-amber-600">Open</th>
+                      <th className="p-1 text-center text-green-600">Closed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {disciplineData.map(d => (
+                      <tr key={d.discipline} className="border-b border-slate-200">
+                        <td className="p-1.5 capitalize font-medium">{d.discipline}</td>
+                        <td className={`p-1.5 text-center ${d.hoNcr.open > 0 ? 'bg-red-50 text-red-600 font-bold' : ''}`}>{d.hoNcr.open}</td>
+                        <td className="p-1.5 text-center text-green-600">{d.hoNcr.closed}</td>
+                        <td className={`p-1.5 text-center ${d.hoPunch.open > 0 ? 'bg-amber-50 text-amber-600 font-bold' : ''}`}>{d.hoPunch.open}</td>
+                        <td className="p-1.5 text-center text-green-600">{d.hoPunch.closed}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-slate-100 font-bold">
+                      <td className="p-1.5">Total</td>
+                      <td className="p-1.5 text-center text-red-600">{hoNcrOpen}</td>
+                      <td className="p-1.5 text-center text-green-600">{hoNcrClosed}</td>
+                      <td className="p-1.5 text-center text-amber-600">{hoPunchOpen}</td>
+                      <td className="p-1.5 text-center text-green-600">{hoPunchClosed}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
 
-              {/* Certificate Progress */}
-              <div className="rounded-xl bg-purple-50 border-2 border-purple-400 p-4">
-                <p className="text-xs font-semibold text-purple-700 mb-2">📜 Certificate Status</p>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs mb-2">
-                  <div className="rounded-lg bg-green-100 p-2">
-                    <p className="text-green-600 font-bold text-lg">{cert?.completed || 0}</p>
-                    <p className="text-[10px]">Completed</p>
-                  </div>
-                  <div className="rounded-lg bg-amber-100 p-2">
-                    <p className="text-amber-600 font-bold text-lg">{cert?.underApplication || 0}</p>
-                    <p className="text-[10px]">Under App.</p>
-                  </div>
-                  <div className="rounded-lg bg-slate-100 p-2">
-                    <p className="text-slate-600 font-bold text-lg">{cert?.notYetApplied || 0}</p>
-                    <p className="text-[10px]">Not Yet</p>
-                  </div>
-                </div>
-                {certTotal > 0 && (
-                  <div className="h-3 bg-slate-200 rounded-full overflow-hidden flex">
-                    {(cert?.completed || 0) > 0 && <div className="bg-green-500" style={{ width: `${((cert?.completed || 0) / certTotal) * 100}%` }} />}
-                    {(cert?.underApplication || 0) > 0 && <div className="bg-amber-500" style={{ width: `${((cert?.underApplication || 0) / certTotal) * 100}%` }} />}
-                    {(cert?.notYetApplied || 0) > 0 && <div className="bg-slate-400" style={{ width: `${((cert?.notYetApplied || 0) / certTotal) * 100}%` }} />}
-                  </div>
-                )}
+              {/* Site Office NCR & Punch */}
+              <div className="rounded-xl bg-slate-50 p-4">
+                <p className="text-xs font-semibold text-slate-700 mb-3">🏗️ Site Office - NCR & Punch List</p>
+                <table className="w-full text-[10px]">
+                  <thead>
+                    <tr className="bg-slate-200">
+                      <th className="p-1.5 text-left">Discipline</th>
+                      <th className="p-1.5 text-center" colSpan={2}>NCR</th>
+                      <th className="p-1.5 text-center" colSpan={2}>Punch</th>
+                    </tr>
+                    <tr className="bg-slate-100">
+                      <th></th>
+                      <th className="p-1 text-center text-red-600">Open</th>
+                      <th className="p-1 text-center text-green-600">Closed</th>
+                      <th className="p-1 text-center text-amber-600">Open</th>
+                      <th className="p-1 text-center text-green-600">Closed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {disciplineData.map(d => (
+                      <tr key={d.discipline} className="border-b border-slate-200">
+                        <td className="p-1.5 capitalize font-medium">{d.discipline}</td>
+                        <td className={`p-1.5 text-center ${d.soNcr.open > 0 ? 'bg-red-50 text-red-600 font-bold' : ''}`}>{d.soNcr.open}</td>
+                        <td className="p-1.5 text-center text-green-600">{d.soNcr.closed}</td>
+                        <td className={`p-1.5 text-center ${d.soPunch.open > 0 ? 'bg-amber-50 text-amber-600 font-bold' : ''}`}>{d.soPunch.open}</td>
+                        <td className="p-1.5 text-center text-green-600">{d.soPunch.closed}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-slate-100 font-bold">
+                      <td className="p-1.5">Total</td>
+                      <td className="p-1.5 text-center text-red-600">{soNcrOpen}</td>
+                      <td className="p-1.5 text-center text-green-600">{soNcrClosed}</td>
+                      <td className="p-1.5 text-center text-amber-600">{soPunchOpen}</td>
+                      <td className="p-1.5 text-center text-green-600">{soPunchClosed}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
+            </div>
+
+            {/* Summary Row: NCR/Punch Totals + Welding + Certificate */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
+              {/* HO NCR */}
+              <div className="rounded-lg bg-red-50 p-3 text-center">
+                <p className="text-[10px] text-slate-500">HO NCR</p>
+                <p className="text-lg font-bold text-red-600">{hoNcrOpen} <span className="text-xs text-green-600">/ {hoNcrClosed}</span></p>
+                <p className="text-[9px] text-slate-400">Open / Closed</p>
+              </div>
+              {/* HO Punch */}
+              <div className="rounded-lg bg-amber-50 p-3 text-center">
+                <p className="text-[10px] text-slate-500">HO Punch</p>
+                <p className="text-lg font-bold text-amber-600">{hoPunchOpen} <span className="text-xs text-green-600">/ {hoPunchClosed}</span></p>
+                <p className="text-[9px] text-slate-400">Open / Closed</p>
+              </div>
+              {/* Site NCR */}
+              <div className="rounded-lg bg-red-50 p-3 text-center">
+                <p className="text-[10px] text-slate-500">Site NCR</p>
+                <p className="text-lg font-bold text-red-600">{soNcrOpen} <span className="text-xs text-green-600">/ {soNcrClosed}</span></p>
+                <p className="text-[9px] text-slate-400">Open / Closed</p>
+              </div>
+              {/* Site Punch */}
+              <div className="rounded-lg bg-amber-50 p-3 text-center">
+                <p className="text-[10px] text-slate-500">Site Punch</p>
+                <p className="text-lg font-bold text-amber-600">{soPunchOpen} <span className="text-xs text-green-600">/ {soPunchClosed}</span></p>
+                <p className="text-[9px] text-slate-400">Open / Closed</p>
+              </div>
+              {/* Welding Gauge */}
+              <div className={`rounded-lg p-3 text-center ${weldStatus === 'Pass' ? 'bg-green-50 border-2 border-green-400' : weldStatus === 'Warning' ? 'bg-amber-50 border-2 border-amber-400' : 'bg-red-50 border-2 border-red-400'}`}>
+                <p className="text-[10px] text-slate-500">🔧 Welding</p>
+                <p className={`text-lg font-bold ${weldStatus === 'Pass' ? 'text-green-600' : weldStatus === 'Warning' ? 'text-amber-600' : 'text-red-600'}`}>
+                  {weldStatus === 'Pass' ? '✅' : weldStatus === 'Warning' ? '⚠️' : '❌'} {rejRate.toFixed(1)}%
+                </p>
+                <p className="text-[9px] text-slate-400">Target: ≤{weldPlan}%</p>
+              </div>
+            </div>
+
+            {/* Certificate Status */}
+            <div className="rounded-xl bg-purple-50 border-2 border-purple-400 p-4">
+              <p className="text-xs font-semibold text-purple-700 mb-2">📜 Certificate Status</p>
+              <div className="grid grid-cols-3 gap-2 text-center text-xs mb-2">
+                <div className="rounded-lg bg-green-100 p-2">
+                  <p className="text-green-600 font-bold text-lg">{cert?.completed || 0}</p>
+                  <p className="text-[10px]">Completed</p>
+                </div>
+                <div className="rounded-lg bg-amber-100 p-2">
+                  <p className="text-amber-600 font-bold text-lg">{cert?.underApplication || 0}</p>
+                  <p className="text-[10px]">Under App.</p>
+                </div>
+                <div className="rounded-lg bg-slate-100 p-2">
+                  <p className="text-slate-600 font-bold text-lg">{cert?.notYetApplied || 0}</p>
+                  <p className="text-[10px]">Not Yet</p>
+                </div>
+              </div>
+              {certTotal > 0 && (
+                <div className="h-3 bg-slate-200 rounded-full overflow-hidden flex">
+                  {(cert?.completed || 0) > 0 && <div className="bg-green-500" style={{ width: `${((cert?.completed || 0) / certTotal) * 100}%` }} />}
+                  {(cert?.underApplication || 0) > 0 && <div className="bg-amber-500" style={{ width: `${((cert?.underApplication || 0) / certTotal) * 100}%` }} />}
+                  {(cert?.notYetApplied || 0) > 0 && <div className="bg-slate-400" style={{ width: `${((cert?.notYetApplied || 0) / certTotal) * 100}%` }} />}
+                </div>
+              )}
             </div>
           </div>
         );
