@@ -661,7 +661,7 @@ export default function AnalysisPage() {
                                     </thead>
                                     <tbody>
                                         {group.risks.map((risk, idx) => (
-                                            <tr key={idx} className="border-t hover:bg-slate-50">
+                                            <tr key={idx} className={`border-t ${risk.level === 'Critical' || risk.level === 'High' ? 'bg-red-50' : risk.level === 'Medium' ? 'bg-amber-50' : 'bg-white'} hover:opacity-80`}>
                                                 <td className="px-4 py-2">
                                                     <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getLevelBg(risk.level)}`}>
                                                         {risk.level === 'Critical' ? '🔴' : risk.level === 'High' ? '🟠' : risk.level === 'Medium' ? '🟡' : '🟢'} {risk.level}
@@ -677,9 +677,10 @@ export default function AnalysisPage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center py-8 text-slate-400">
-                        <p className="text-lg mb-2">✅ No Risks Identified</p>
-                        <p className="text-sm">All indicators are within acceptable thresholds</p>
+                    <div className="text-center py-8">
+                        <span className="text-4xl">✅</span>
+                        <p className="font-semibold text-green-600 mt-2">No significant risks identified</p>
+                        <p className="text-xs text-slate-500">All performance indicators are within acceptable range</p>
                     </div>
                 )}
             </div>
