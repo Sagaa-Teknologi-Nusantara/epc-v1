@@ -1358,7 +1358,7 @@ export default function DashboardPage() {
                     <p className="text-xs font-semibold text-teal-600 capitalize mb-1">{cat}</p>
                     <ul className="pl-4 space-y-0.5">
                       {filteredItems.map((item, j) => (
-                        <li key={j} className="text-xs text-slate-600 list-disc">{item}</li>
+                        <li key={j} className="text-xs text-slate-600 list-disc break-words">{item}</li>
                       ))}
                     </ul>
                   </div>
@@ -1382,7 +1382,7 @@ export default function DashboardPage() {
                     <p className="text-xs font-semibold text-blue-600 capitalize mb-1">{cat}</p>
                     <ul className="pl-4 space-y-0.5">
                       {filteredItems.map((item, j) => (
-                        <li key={j} className="text-xs text-slate-600 list-disc">{item}</li>
+                        <li key={j} className="text-xs text-slate-600 list-disc break-words">{item}</li>
                       ))}
                     </ul>
                   </div>

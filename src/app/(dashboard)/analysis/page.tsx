@@ -342,19 +342,18 @@ export default function AnalysisPage() {
 
             // Export each category
             Object.entries(risksByCategory).forEach(([category, categoryRisks]) => {
-                exporter.addText(`📋 ${category}:`, 'normal');
+                exporter.addText(`[${category}]`, 'normal');
                 categoryRisks.forEach(risk => {
-                    const levelEmoji = risk.level === 'Critical' ? '🔴' : risk.level === 'High' ? '🟠' : risk.level === 'Medium' ? '🟡' : '🟢';
-                    exporter.addKeyValue(`${levelEmoji} [${risk.level}]`, risk.description, risk.level === 'Critical' || risk.level === 'High');
+                    exporter.addKeyValue(`[${risk.level}]`, risk.description, risk.level === 'Critical' || risk.level === 'High');
                     if (risk.recommendation) {
-                        exporter.addText(`   ↳ Recommendation: ${risk.recommendation}`, 'small');
+                        exporter.addText(`  > Recommendation: ${risk.recommendation}`, 'small');
                     }
                 });
                 exporter.addSpacing(3);
             });
         } else {
             exporter.addSectionTitle('Risk Register');
-            exporter.addText('✅ No risks identified - All indicators within acceptable thresholds', 'normal');
+            exporter.addText('No risks identified - All indicators within acceptable thresholds', 'normal');
         }
 
         const filename = `EPC_RiskAnalysis_Week${selectedReport?.weekNo || ''}_${new Date().toISOString().split('T')[0]}.pdf`;
