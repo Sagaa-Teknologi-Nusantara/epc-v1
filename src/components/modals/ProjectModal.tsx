@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Icons } from '@/components/ui/Icons';
 import type { Project } from '@/types';
 
@@ -13,25 +13,52 @@ interface ProjectModalProps {
 
 export function ProjectModal({ isOpen, onClose, onSave, project }: ProjectModalProps) {
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState<Partial<Project>>({
-        name: project?.name || '',
-        owner: project?.owner || '',
-        contractor: project?.contractor || '',
-        technologyProvider: project?.technologyProvider || '',
-        contractType: project?.contractType || 'EPC Turnkey',
-        termOfPayment: project?.termOfPayment || 'Progress Payment',
-        contractPrice: project?.contractPrice || 0,
-        bac: project?.bac || 0,
-        ldDelay: project?.ldDelay || 0,
-        ldPerformance: project?.ldPerformance || 0,
-        scopeByOwner: project?.scopeByOwner || '',
-        startDate: project?.startDate || '',
-        finishDate: project?.finishDate || '',
-        guaranteedPower: project?.guaranteedPower || 0,
-        ntpDate: project?.ntpDate || '',
-        codDate: project?.codDate || '',
-        status: project?.status || 'Active',
-    });
+    const [formData, setFormData] = useState<Partial<Project>>({});
+
+    // Sync formData with project prop changes
+    useEffect(() => {
+        if (project) {
+            setFormData({
+                name: project.name || '',
+                owner: project.owner || '',
+                contractor: project.contractor || '',
+                technologyProvider: project.technologyProvider || '',
+                contractType: project.contractType || 'EPC Turnkey',
+                termOfPayment: project.termOfPayment || 'Progress Payment',
+                contractPrice: project.contractPrice || 0,
+                bac: project.bac || 0,
+                ldDelay: project.ldDelay || 0,
+                ldPerformance: project.ldPerformance || 0,
+                scopeByOwner: project.scopeByOwner || '',
+                startDate: project.startDate || '',
+                finishDate: project.finishDate || '',
+                guaranteedPower: project.guaranteedPower || 0,
+                ntpDate: project.ntpDate || '',
+                codDate: project.codDate || '',
+                status: project.status || 'Active',
+            });
+        } else {
+            setFormData({
+                name: '',
+                owner: '',
+                contractor: '',
+                technologyProvider: '',
+                contractType: 'EPC Turnkey',
+                termOfPayment: 'Progress Payment',
+                contractPrice: 0,
+                bac: 0,
+                ldDelay: 0,
+                ldPerformance: 0,
+                scopeByOwner: '',
+                startDate: '',
+                finishDate: '',
+                guaranteedPower: 0,
+                ntpDate: '',
+                codDate: '',
+                status: 'Active',
+            });
+        }
+    }, [project, isOpen]);
 
     if (!isOpen) return null;
 
