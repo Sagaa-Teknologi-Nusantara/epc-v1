@@ -981,97 +981,139 @@ export default function DashboardPage() {
       })()}
 
 
-      {/* Milestones Section */}
+      {/* Milestones Section - Detailed Tables */}
       {((selectedReport?.milestonesSchedule?.length ?? 0) > 0 || (selectedReport?.milestonesPayment?.length ?? 0) > 0) && (
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-bold">🎯 Milestone Status</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* Schedule Milestones */}
-            <div className="rounded-xl bg-gradient-to-br from-violet-50 to-violet-100 p-4">
-              <p className="text-xs font-semibold text-violet-600 mb-3">📅 Schedule Milestones</p>
-              {(() => {
-                const ms = selectedReport?.milestonesSchedule || [];
-                const completed = ms.filter(m => m.status === 'Completed').length;
-                const onTrack = ms.filter(m => m.status === 'On Track').length;
-                const atRisk = ms.filter(m => m.status === 'At Risk').length;
-                const delayed = ms.filter(m => ['Delayed', 'Critical', 'Overdue'].includes(m.status)).length;
-                return (
-                  <div className="grid grid-cols-4 gap-2 text-center">
-                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-green-600">{completed}</p><p className="text-[9px] text-slate-500">Done</p></div>
-                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-blue-600">{onTrack}</p><p className="text-[9px] text-slate-500">On Track</p></div>
-                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-amber-600">{atRisk}</p><p className="text-[9px] text-slate-500">At Risk</p></div>
-                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-red-600">{delayed}</p><p className="text-[9px] text-slate-500">Delayed</p></div>
-                  </div>
-                );
-              })()}
+        <div className="grid gap-5 lg:grid-cols-2">
+          {/* Schedule Milestones Table */}
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-bold text-violet-600">📅 Schedule Milestones</h3>
+            <div className="max-h-60 overflow-y-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-100 sticky top-0">
+                  <tr>
+                    <th className="p-2 text-left w-8">#</th>
+                    <th className="p-2 text-left">Description</th>
+                    <th className="p-2 text-center w-20">Plan</th>
+                    <th className="p-2 text-center w-20">Actual/FC</th>
+                    <th className="p-2 text-center w-24">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(selectedReport?.milestonesSchedule || []).map((m, i) => (
+                    <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="p-2 font-semibold">{m.no || i + 1}</td>
+                      <td className="p-2">{m.description}</td>
+                      <td className="p-2 text-center text-[10px]">{m.planDate || '-'}</td>
+                      <td className="p-2 text-center text-[10px]">{m.actualForecastDate || '-'}</td>
+                      <td className="p-2 text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold ${m.status === 'Completed' ? 'bg-green-100 text-green-600' :
+                          m.status === 'On Track' ? 'bg-blue-100 text-blue-600' :
+                            m.status === 'At Risk' ? 'bg-amber-100 text-amber-600' :
+                              'bg-red-100 text-red-600'
+                          }`}>
+                          {m.status === 'Completed' ? '🟢' : m.status === 'On Track' ? '🔵' : m.status === 'At Risk' ? '🟡' : '🔴'} {m.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!selectedReport?.milestonesSchedule || selectedReport.milestonesSchedule.length === 0) && (
+                    <tr><td colSpan={5} className="p-4 text-center text-slate-400">No schedule milestones</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
+          </div>
 
-            {/* Payment Milestones */}
-            <div className="rounded-xl bg-gradient-to-br from-amber-50 to-amber-100 p-4">
-              <p className="text-xs font-semibold text-amber-600 mb-3">💳 Payment Milestones</p>
-              {(() => {
-                const ms = selectedReport?.milestonesPayment || [];
-                const completed = ms.filter(m => m.status === 'Completed').length;
-                const onTrack = ms.filter(m => m.status === 'On Track').length;
-                const atRisk = ms.filter(m => m.status === 'At Risk').length;
-                const delayed = ms.filter(m => ['Delayed', 'Critical', 'Overdue'].includes(m.status)).length;
-                return (
-                  <div className="grid grid-cols-4 gap-2 text-center">
-                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-green-600">{completed}</p><p className="text-[9px] text-slate-500">Done</p></div>
-                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-blue-600">{onTrack}</p><p className="text-[9px] text-slate-500">On Track</p></div>
-                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-amber-600">{atRisk}</p><p className="text-[9px] text-slate-500">At Risk</p></div>
-                    <div className="rounded-lg bg-white p-2"><p className="text-lg font-bold text-red-600">{delayed}</p><p className="text-[9px] text-slate-500">Delayed</p></div>
-                  </div>
-                );
-              })()}
+          {/* Payment Milestones Table */}
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-bold text-amber-600">💰 Payment Milestones</h3>
+            <div className="max-h-60 overflow-y-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-100 sticky top-0">
+                  <tr>
+                    <th className="p-2 text-left w-8">#</th>
+                    <th className="p-2 text-left">Description</th>
+                    <th className="p-2 text-center w-20">Plan</th>
+                    <th className="p-2 text-center w-20">Actual/FC</th>
+                    <th className="p-2 text-center w-24">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(selectedReport?.milestonesPayment || []).map((m, i) => (
+                    <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
+                      <td className="p-2 font-semibold">{m.no || i + 1}</td>
+                      <td className="p-2">{m.description}</td>
+                      <td className="p-2 text-center text-[10px]">{m.planDate || '-'}</td>
+                      <td className="p-2 text-center text-[10px]">{m.actualForecastDate || '-'}</td>
+                      <td className="p-2 text-center">
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold ${m.status === 'Completed' ? 'bg-green-100 text-green-600' :
+                          m.status === 'On Track' ? 'bg-blue-100 text-blue-600' :
+                            m.status === 'At Risk' ? 'bg-amber-100 text-amber-600' :
+                              'bg-red-100 text-red-600'
+                          }`}>
+                          {m.status === 'Completed' ? '🟢' : m.status === 'On Track' ? '🔵' : m.status === 'At Risk' ? '🟡' : '🔴'} {m.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!selectedReport?.milestonesPayment || selectedReport.milestonesPayment.length === 0) && (
+                    <tr><td colSpan={5} className="p-4 text-center text-slate-400">No payment milestones</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       )}
 
-      {/* Activities Section */}
+      {/* Activities Section - Full Lists */}
       {(selectedReport?.thisWeekActivities || selectedReport?.nextWeekPlan) && (
-        <div className="rounded-2xl bg-white p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-bold">📝 Activities Summary</h3>
-          <div className="grid gap-4 md:grid-cols-2">
-            {/* This Week */}
-            <div className="rounded-xl bg-gradient-to-br from-teal-50 to-teal-100 p-4">
-              <p className="text-xs font-semibold text-teal-600 mb-3">✅ This Week Completed</p>
-              <div className="space-y-2">
-                {(['engineering', 'procurement', 'construction', 'precommissioning'] as const).map(key => {
-                  const items = (selectedReport.thisWeekActivities as unknown as Record<string, string[]>)?.[key] || [];
-                  if (items.length === 0) return null;
-                  return (
-                    <div key={key} className="rounded-lg bg-white p-2">
-                      <p className="text-[10px] font-semibold text-slate-600 capitalize mb-1">{key}</p>
-                      <ul className="text-[10px] text-slate-500 list-disc list-inside">
-                        {items.slice(0, 2).map((item, i) => <li key={i} className="truncate">{item}</li>)}
-                        {items.length > 2 && <li className="text-slate-400">+{items.length - 2} more...</li>}
-                      </ul>
-                    </div>
-                  );
-                })}
-              </div>
+        <div className="grid gap-5 lg:grid-cols-2">
+          {/* This Week Activities */}
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-bold text-teal-600">📋 This Week Activities</h3>
+            <div className="max-h-64 overflow-y-auto space-y-3">
+              {Object.entries((selectedReport?.thisWeekActivities || {}) as unknown as Record<string, string[]>).map(([cat, items]) => {
+                const filteredItems = (Array.isArray(items) ? items : []).filter(i => i);
+                if (filteredItems.length === 0) return null;
+                return (
+                  <div key={cat}>
+                    <p className="text-xs font-semibold text-teal-600 capitalize mb-1">{cat}</p>
+                    <ul className="pl-4 space-y-0.5">
+                      {filteredItems.map((item, j) => (
+                        <li key={j} className="text-xs text-slate-600 list-disc">{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+              {Object.keys(selectedReport?.thisWeekActivities || {}).length === 0 && (
+                <p className="text-center text-slate-400 text-xs py-4">No activities recorded</p>
+              )}
             </div>
+          </div>
 
-            {/* Next Week */}
-            <div className="rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 p-4">
-              <p className="text-xs font-semibold text-blue-600 mb-3">📆 Next Week Plan</p>
-              <div className="space-y-2">
-                {(['engineering', 'procurement', 'construction', 'precommissioning'] as const).map(key => {
-                  const items = (selectedReport.nextWeekPlan as unknown as Record<string, string[]>)?.[key] || [];
-                  if (items.length === 0) return null;
-                  return (
-                    <div key={key} className="rounded-lg bg-white p-2">
-                      <p className="text-[10px] font-semibold text-slate-600 capitalize mb-1">{key}</p>
-                      <ul className="text-[10px] text-slate-500 list-disc list-inside">
-                        {items.slice(0, 2).map((item, i) => <li key={i} className="truncate">{item}</li>)}
-                        {items.length > 2 && <li className="text-slate-400">+{items.length - 2} more...</li>}
-                      </ul>
-                    </div>
-                  );
-                })}
-              </div>
+          {/* Next Week Plan */}
+          <div className="rounded-2xl bg-white p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-bold text-blue-600">📅 Next Week Plan</h3>
+            <div className="max-h-64 overflow-y-auto space-y-3">
+              {Object.entries((selectedReport?.nextWeekPlan || {}) as unknown as Record<string, string[]>).map(([cat, items]) => {
+                const filteredItems = (Array.isArray(items) ? items : []).filter(i => i);
+                if (filteredItems.length === 0) return null;
+                return (
+                  <div key={cat}>
+                    <p className="text-xs font-semibold text-blue-600 capitalize mb-1">{cat}</p>
+                    <ul className="pl-4 space-y-0.5">
+                      {filteredItems.map((item, j) => (
+                        <li key={j} className="text-xs text-slate-600 list-disc">{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+              {Object.keys(selectedReport?.nextWeekPlan || {}).length === 0 && (
+                <p className="text-center text-slate-400 text-xs py-4">No plans recorded</p>
+              )}
             </div>
           </div>
         </div>
