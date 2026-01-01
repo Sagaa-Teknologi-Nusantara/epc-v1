@@ -1347,9 +1347,9 @@ export default function DashboardPage() {
       {(selectedReport?.thisWeekActivities || selectedReport?.nextWeekPlan) && (
         <div className="grid gap-5 lg:grid-cols-2">
           {/* This Week Activities */}
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-2xl bg-white p-5 shadow-sm overflow-hidden">
             <h3 className="mb-4 text-sm font-bold text-teal-600">📋 This Week Activities</h3>
-            <div className="max-h-64 overflow-y-auto space-y-3">
+            <div className="max-h-64 overflow-y-auto overflow-x-hidden space-y-3">
               {Object.entries((selectedReport?.thisWeekActivities || {}) as unknown as Record<string, string[]>).map(([cat, items]) => {
                 const filteredItems = (Array.isArray(items) ? items : []).filter(i => i);
                 if (filteredItems.length === 0) return null;
@@ -1358,7 +1358,7 @@ export default function DashboardPage() {
                     <p className="text-xs font-semibold text-teal-600 capitalize mb-1">{cat}</p>
                     <ul className="pl-4 space-y-0.5">
                       {filteredItems.map((item, j) => (
-                        <li key={j} className="text-xs text-slate-600 list-disc break-words">{item}</li>
+                        <li key={j} className="text-xs text-slate-600 list-disc break-all whitespace-normal">{item}</li>
                       ))}
                     </ul>
                   </div>
@@ -1371,9 +1371,9 @@ export default function DashboardPage() {
           </div>
 
           {/* Next Week Plan */}
-          <div className="rounded-2xl bg-white p-5 shadow-sm">
+          <div className="rounded-2xl bg-white p-5 shadow-sm overflow-hidden">
             <h3 className="mb-4 text-sm font-bold text-blue-600">📅 Next Week Plan</h3>
-            <div className="max-h-64 overflow-y-auto space-y-3">
+            <div className="max-h-64 overflow-y-auto overflow-x-hidden space-y-3">
               {Object.entries((selectedReport?.nextWeekPlan || {}) as unknown as Record<string, string[]>).map(([cat, items]) => {
                 const filteredItems = (Array.isArray(items) ? items : []).filter(i => i);
                 if (filteredItems.length === 0) return null;
@@ -1382,7 +1382,7 @@ export default function DashboardPage() {
                     <p className="text-xs font-semibold text-blue-600 capitalize mb-1">{cat}</p>
                     <ul className="pl-4 space-y-0.5">
                       {filteredItems.map((item, j) => (
-                        <li key={j} className="text-xs text-slate-600 list-disc break-words">{item}</li>
+                        <li key={j} className="text-xs text-slate-600 list-disc break-all whitespace-normal">{item}</li>
                       ))}
                     </ul>
                   </div>
