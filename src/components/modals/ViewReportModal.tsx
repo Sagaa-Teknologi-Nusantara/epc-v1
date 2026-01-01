@@ -11,7 +11,7 @@ interface ViewReportModalProps {
     projectName: string;
 }
 
-type TabId = 'overview' | 'progress' | 'cashflow' | 'hse' | 'quality' | 'milestones' | 'activities';
+type TabId = 'overview' | 'progress' | 'cashflow' | 'hse' | 'quality' | 'milestones' | 'activities' | 'uploads';
 
 export function ViewReportModal({ isOpen, onClose, report, projectName }: ViewReportModalProps) {
     const [activeTab, setActiveTab] = useState<TabId>('overview');
@@ -37,6 +37,7 @@ export function ViewReportModal({ isOpen, onClose, report, projectName }: ViewRe
         { id: 'quality' as TabId, label: '📋 Quality' },
         { id: 'milestones' as TabId, label: '🎯 Milestones' },
         { id: 'activities' as TabId, label: '📝 Activities' },
+        { id: 'uploads' as TabId, label: '📷 Uploads' },
     ];
 
     return (
@@ -570,6 +571,86 @@ export function ViewReportModal({ isOpen, onClose, report, projectName }: ViewRe
                                         </div>
                                     );
                                 })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Uploads Tab */}
+                    {activeTab === 'uploads' && (
+                        <div className="space-y-4">
+                            {/* S-Curve Images */}
+                            <div className="rounded-xl bg-white p-4 shadow-sm">
+                                <h3 className="text-sm font-bold text-teal-600 mb-4">📈 S-Curve Images</h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {[
+                                        { key: 'sCurveGeneral', label: 'General EPCC', color: 'from-teal-400 to-teal-600' },
+                                        { key: 'sCurveEngineering', label: 'Engineering', color: 'from-blue-400 to-blue-600' },
+                                        { key: 'sCurveProcurement', label: 'Procurement', color: 'from-amber-400 to-amber-600' },
+                                        { key: 'sCurveConstruction', label: 'Construction', color: 'from-purple-400 to-purple-600' },
+                                    ].map(item => {
+                                        const upload = (report.uploads as Record<string, { name: string; data: string }>)?.[item.key];
+                                        return (
+                                            <div key={item.key} className="rounded-lg overflow-hidden border border-slate-200">
+                                                <div className={`bg-gradient-to-r ${item.color} text-white text-xs font-semibold p-2 text-center`}>
+                                                    {item.label}
+                                                </div>
+                                                {upload?.data ? (
+                                                    <img src={upload.data} alt={item.label} className="w-full h-24 object-cover hover:scale-105 transition cursor-pointer" />
+                                                ) : (
+                                                    <div className="h-24 bg-slate-50 flex items-center justify-center">
+                                                        <span className="text-slate-400 text-xs">No image</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Cash Flow & QR Codes */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {/* Cash Flow Image */}
+                                <div className="rounded-xl bg-white p-4 shadow-sm">
+                                    <h3 className="text-sm font-bold text-green-600 mb-4">💵 Cash Flow Chart</h3>
+                                    {(() => {
+                                        const upload = (report.uploads as Record<string, { name: string; data: string }>)?.cashFlow;
+                                        return upload?.data ? (
+                                            <img src={upload.data} alt="Cash Flow" className="w-full h-32 object-contain rounded-lg bg-slate-50" />
+                                        ) : (
+                                            <div className="h-32 bg-slate-50 rounded-lg flex items-center justify-center">
+                                                <span className="text-slate-400 text-xs">No cash flow image uploaded</span>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+
+                                {/* QR Codes */}
+                                <div className="rounded-xl bg-white p-4 shadow-sm">
+                                    <h3 className="text-sm font-bold text-purple-600 mb-4">📱 QR Codes</h3>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        {[
+                                            { key: 'qrPhotos', label: 'Photos', color: 'bg-blue-500' },
+                                            { key: 'qrVideos', label: 'Videos', color: 'bg-purple-500' },
+                                            { key: 'qrReport', label: 'Report', color: 'bg-teal-500' },
+                                        ].map(qr => {
+                                            const upload = (report.uploads as Record<string, { name: string; data: string }>)?.[qr.key];
+                                            return (
+                                                <div key={qr.key} className="text-center">
+                                                    <div className={`${qr.color} text-white text-[10px] font-semibold py-1 px-2 rounded-t`}>
+                                                        {qr.label}
+                                                    </div>
+                                                    {upload?.data ? (
+                                                        <img src={upload.data} alt={qr.label} className="w-full h-16 object-cover rounded-b border border-t-0 border-slate-200" />
+                                                    ) : (
+                                                        <div className="h-16 bg-slate-50 rounded-b border border-t-0 border-slate-200 flex items-center justify-center">
+                                                            <span className="text-slate-400 text-[10px]">No QR</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
