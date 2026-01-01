@@ -372,6 +372,33 @@ export default function TrendPage() {
         exporter.addKeyValue('Data Points:', `${trendData.length} weeks`);
         exporter.addSpacing();
 
+        // Calculate summary statistics
+        if (trendData.length > 0) {
+            const progressValues = trendData.map(d => d.actualProgress as number || 0);
+            const spiValues = trendData.map(d => d.spi as number || 1);
+            const cpiValues = trendData.map(d => d.cpi as number || 1);
+
+            const calcStats = (values: number[]) => ({
+                min: Math.min(...values),
+                max: Math.max(...values),
+                avg: values.reduce((a, b) => a + b, 0) / values.length,
+                latest: values[values.length - 1] || 0,
+            });
+
+            const progressStats = calcStats(progressValues);
+            const spiStats = calcStats(spiValues);
+            const cpiStats = calcStats(cpiValues);
+
+            exporter.addSectionTitle('Key Metrics Summary');
+            exporter.addStatsRow([
+                { label: 'Progress (Latest)', value: `${progressStats.latest.toFixed(1)}%`, status: progressStats.latest >= 50 ? 'good' : 'warning' },
+                { label: 'Progress (Avg)', value: `${progressStats.avg.toFixed(1)}%`, status: 'neutral' },
+                { label: 'SPI (Latest)', value: spiStats.latest.toFixed(3), status: spiStats.latest >= 1 ? 'good' : 'bad' },
+                { label: 'CPI (Latest)', value: cpiStats.latest.toFixed(3), status: cpiStats.latest >= 1 ? 'good' : 'bad' },
+            ]);
+            exporter.addSpacing();
+        }
+
         // Helper to capture chart SVGs from a ref
         const captureChart = async (ref: React.RefObject<HTMLDivElement | null>, title: string) => {
             if (ref.current) {

@@ -327,17 +327,34 @@ export default function AnalysisPage() {
             exporter.addSpacing();
         }
 
-        // Detailed Risks
+        // Detailed Risks (show all risks with recommendations)
         if (risks.length > 0) {
             exporter.addSectionTitle('Risk Register');
-            risks.slice(0, 10).forEach(risk => {
-                exporter.addKeyValue(`[${risk.level}] ${risk.category}:`, risk.description);
+
+            // Group risks by category for PDF
+            const risksByCategory: Record<string, RiskItem[]> = {};
+            risks.forEach(risk => {
+                if (!risksByCategory[risk.category]) {
+                    risksByCategory[risk.category] = [];
+                }
+                risksByCategory[risk.category].push(risk);
             });
-            if (risks.length > 10) {
-                exporter.addText(`... and ${risks.length - 10} more risks`, 'small');
-            }
+
+            // Export each category
+            Object.entries(risksByCategory).forEach(([category, categoryRisks]) => {
+                exporter.addText(`📋 ${category}:`, 'normal');
+                categoryRisks.forEach(risk => {
+                    const levelEmoji = risk.level === 'Critical' ? '🔴' : risk.level === 'High' ? '🟠' : risk.level === 'Medium' ? '🟡' : '🟢';
+                    exporter.addKeyValue(`${levelEmoji} [${risk.level}]`, risk.description, risk.level === 'Critical' || risk.level === 'High');
+                    if (risk.recommendation) {
+                        exporter.addText(`   ↳ Recommendation: ${risk.recommendation}`, 'small');
+                    }
+                });
+                exporter.addSpacing(3);
+            });
         } else {
-            exporter.addText('No risks identified - All indicators within acceptable thresholds', 'normal');
+            exporter.addSectionTitle('Risk Register');
+            exporter.addText('✅ No risks identified - All indicators within acceptable thresholds', 'normal');
         }
 
         const filename = `EPC_RiskAnalysis_Week${selectedReport?.weekNo || ''}_${new Date().toISOString().split('T')[0]}.pdf`;
