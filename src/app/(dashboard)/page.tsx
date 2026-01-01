@@ -434,6 +434,70 @@ export default function DashboardPage() {
               <p className="text-xl font-extrabold text-purple-600">${((selectedReport.cashFlow.cashIn || 0) / 1e6).toFixed(2)}M</p>
             </div>
           </div>
+
+          {/* Visual Row: Cash Flow Chart, Primary Summary, QR Codes */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {/* Cash Flow Chart Visual */}
+            <div className="rounded-xl bg-slate-50 p-4">
+              <h4 className="text-xs font-semibold text-slate-600 mb-3">Cash Flow Chart</h4>
+              {selectedReport.uploads?.cashFlow ? (
+                <img src={selectedReport.uploads.cashFlow.data} alt="Cash Flow" className="w-full h-24 object-contain rounded-lg" />
+              ) : (
+                <div className="space-y-2">
+                  {[
+                    { label: 'Revenue', value: selectedReport.cashFlow.revenue || evm.bcwp || 0, color: 'bg-green-500', max: Math.max(selectedReport.cashFlow.revenue || 0, selectedReport.cashFlow.cashOut || 0, selectedReport.cashFlow.billing || 0, selectedReport.cashFlow.cashIn || 0) || 1 },
+                    { label: 'Cash Out', value: selectedReport.cashFlow.cashOut || 0, color: 'bg-red-500', max: Math.max(selectedReport.cashFlow.revenue || 0, selectedReport.cashFlow.cashOut || 0, selectedReport.cashFlow.billing || 0, selectedReport.cashFlow.cashIn || 0) || 1 },
+                    { label: 'Billing', value: selectedReport.cashFlow.billing || 0, color: 'bg-blue-500', max: Math.max(selectedReport.cashFlow.revenue || 0, selectedReport.cashFlow.cashOut || 0, selectedReport.cashFlow.billing || 0, selectedReport.cashFlow.cashIn || 0) || 1 },
+                    { label: 'Cash In', value: selectedReport.cashFlow.cashIn || 0, color: 'bg-purple-500', max: Math.max(selectedReport.cashFlow.revenue || 0, selectedReport.cashFlow.cashOut || 0, selectedReport.cashFlow.billing || 0, selectedReport.cashFlow.cashIn || 0) || 1 },
+                  ].map(({ label, value, color, max }) => (
+                    <div key={label} className="flex items-center gap-2">
+                      <span className="text-[10px] w-14 text-slate-500">{label}</span>
+                      <div className="flex-1 h-4 bg-slate-200 rounded overflow-hidden">
+                        <div className={`h-full ${color} rounded`} style={{ width: `${(value / max) * 100}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Primary Summary */}
+            <div className="rounded-xl bg-slate-50 p-4">
+              <h4 className="text-xs font-semibold text-slate-600 mb-3">Primary Input</h4>
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs"><span>Revenue (BCWP)</span><strong className="text-green-600">${((selectedReport.cashFlow.revenue || evm.bcwp || 0) / 1e6).toFixed(2)}M</strong></div>
+                <div className="flex justify-between text-xs"><span>Cash Out</span><strong className="text-red-600">${((selectedReport.cashFlow.cashOut || 0) / 1e6).toFixed(2)}M</strong></div>
+                <div className="flex justify-between text-xs"><span>Billing</span><strong className="text-blue-600">${((selectedReport.cashFlow.billing || 0) / 1e6).toFixed(2)}M</strong></div>
+                <div className="flex justify-between text-xs"><span>Cash In</span><strong className="text-purple-600">${((selectedReport.cashFlow.cashIn || 0) / 1e6).toFixed(2)}M</strong></div>
+              </div>
+            </div>
+
+            {/* QR Codes */}
+            <div className="rounded-xl bg-slate-50 p-4">
+              <h4 className="text-xs font-semibold text-slate-600 mb-3">📱 QR Codes</h4>
+              <div className="flex justify-around">
+                {[
+                  { key: 'qrPhotos', label: 'Photos', color: 'border-blue-500', textColor: 'text-blue-500' },
+                  { key: 'qrVideos', label: 'Videos', color: 'border-purple-500', textColor: 'text-purple-500' },
+                  { key: 'qrReport', label: 'Report', color: 'border-teal-500', textColor: 'text-teal-500' },
+                ].map(qr => (
+                  <div key={qr.key} className="text-center">
+                    {selectedReport.uploads?.[qr.key as keyof typeof selectedReport.uploads] ? (
+                      <img
+                        src={(selectedReport.uploads[qr.key as keyof typeof selectedReport.uploads] as { data: string })?.data}
+                        alt={qr.label}
+                        className={`w-12 h-12 object-cover rounded border-2 ${qr.color}`}
+                      />
+                    ) : (
+                      <div className={`w-12 h-12 bg-slate-200 rounded border-2 ${qr.color} flex items-center justify-center text-lg`}>📷</div>
+                    )}
+                    <p className={`text-[8px] font-semibold mt-1 ${qr.textColor}`}>{qr.label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* 8 KPI Indicators */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {/* A. Cash Flow Balance */}
