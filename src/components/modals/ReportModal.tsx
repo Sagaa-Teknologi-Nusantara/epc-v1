@@ -368,22 +368,38 @@ export function ReportModal({ isOpen, onClose, onSave, report, projects }: Repor
                                     {/* Auto-calculated results */}
                                     <div className="rounded-lg bg-amber-50 border border-amber-300 p-4">
                                         <h5 className="font-semibold text-amber-800 mb-3">📊 Auto-Calculated Results</h5>
-                                        <div className="grid grid-cols-4 gap-3">
+                                        {/* Row 1: SPI, CPI, CV */}
+                                        <div className="grid grid-cols-3 gap-3 mb-3">
                                             <div className="rounded-lg bg-green-50 p-3 text-center">
-                                                <p className="text-xs text-slate-500">SPI</p>
-                                                <p className="text-lg font-bold text-green-600">{(evm.spiValue || 0).toFixed(3)}</p>
+                                                <p className="text-[10px] text-green-600 font-medium">SPI = BCWP/BCWS</p>
+                                                <p className="text-lg font-bold text-green-700">{(evm.spiValue || 0).toFixed(4)}</p>
                                             </div>
                                             <div className="rounded-lg bg-amber-100 p-3 text-center">
-                                                <p className="text-xs text-slate-500">CPI</p>
-                                                <p className="text-lg font-bold text-amber-600">{(evm.cpiValue || 0).toFixed(3)}</p>
+                                                <p className="text-[10px] text-amber-600 font-medium">CPI = BCWP/ACWP</p>
+                                                <p className="text-lg font-bold text-amber-700">{(evm.cpiValue || 0).toFixed(4)}</p>
                                             </div>
-                                            <div className="rounded-lg bg-slate-50 p-3 text-center">
-                                                <p className="text-xs text-slate-500">EAC</p>
-                                                <p className="text-lg font-bold">${((evm.eac || 0) / 1e6).toFixed(2)}M</p>
+                                            <div className={`rounded-lg p-3 text-center ${(evm.cv || 0) >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                                                <p className="text-[10px] text-red-600 font-medium">CV = BCWP-ACWP</p>
+                                                <p className={`text-lg font-bold ${(evm.cv || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>${((evm.cv || 0) / 1e6).toFixed(2)}M</p>
                                             </div>
-                                            <div className={`rounded-lg p-3 text-center ${(evm.vac || 0) >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
-                                                <p className="text-xs text-slate-500">VAC</p>
-                                                <p className={`text-lg font-bold ${(evm.vac || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>${((evm.vac || 0) / 1e6).toFixed(2)}M</p>
+                                        </div>
+                                        {/* Row 2: EAC variants and VAC */}
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <div className="rounded-lg bg-slate-100 p-2 flex justify-between items-center">
+                                                <span className="text-[10px] text-slate-600">EAC (Typical) = BAC/CPI</span>
+                                                <span className="text-sm font-bold">${((evm.eacTypical || evm.eac || 0) / 1e6).toFixed(2)}M</span>
+                                            </div>
+                                            <div className="rounded-lg bg-slate-100 p-2 flex justify-between items-center">
+                                                <span className="text-[10px] text-slate-600">EAC (Atypical)</span>
+                                                <span className="text-sm font-bold">${((evm.eacAtypical || 0) / 1e6).toFixed(2)}M</span>
+                                            </div>
+                                            <div className="rounded-lg bg-slate-100 p-2 flex justify-between items-center">
+                                                <span className="text-[10px] text-slate-600">EAC (Combined)</span>
+                                                <span className="text-sm font-bold">${((evm.eacCombined || 0) / 1e6).toFixed(2)}M</span>
+                                            </div>
+                                            <div className={`rounded-lg p-2 flex justify-between items-center ${(evm.vac || 0) >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
+                                                <span className="text-[10px] text-slate-600">VAC = BAC - EAC</span>
+                                                <span className={`text-sm font-bold ${(evm.vac || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>${((evm.vac || 0) / 1e6).toFixed(2)}M</span>
                                             </div>
                                         </div>
                                     </div>
@@ -436,6 +452,16 @@ export function ReportModal({ isOpen, onClose, onSave, report, projects }: Repor
                         {activeTab === 'cashflow' && (
                             <div className="space-y-4">
                                 <h4 className="font-semibold">💵 Cash Flow Input</h4>
+                                {/* Revenue from BCWP */}
+                                <div className="rounded-lg bg-green-50 border border-green-300 p-3">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-green-700">Revenue (BCWP)</label>
+                                            <p className="text-[10px] text-slate-500">Auto-populated from EVM → BCWP (Earned Value)</p>
+                                        </div>
+                                        <p className="text-xl font-bold text-green-600">${((evm.bcwp || 0) / 1e6).toFixed(2)}M</p>
+                                    </div>
+                                </div>
                                 <div className="grid grid-cols-3 gap-4">
                                     <div>
                                         <label className="block text-xs font-semibold text-red-600 mb-1">Cash Out</label>
