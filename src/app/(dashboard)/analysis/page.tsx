@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect } from 'react';
 import { useReportContext } from '@/contexts/ReportContext';
 import { ProjectReportSelector } from '@/components/ui/ProjectReportSelector';
 import { ExportPDFButton } from '@/components/ui/ExportPDFButton';
@@ -25,6 +25,18 @@ interface MilestoneMetrics {
 
 export default function AnalysisPage() {
     const { selectedProject, selectedReport, reports, loading } = useReportContext();
+
+    // Signal when page is ready for print (used by Data Management PDF export)
+    useEffect(() => {
+        if (!loading && selectedReport) {
+            document.body.setAttribute('data-print-ready', 'true');
+        } else {
+            document.body.removeAttribute('data-print-ready');
+        }
+        return () => {
+            document.body.removeAttribute('data-print-ready');
+        };
+    }, [loading, selectedReport]);
 
     // Calculate milestone metrics
     const calculateMilestoneMetrics = (milestones: Record<string, unknown>[] | undefined, type: 'schedule' | 'payment'): MilestoneMetrics => {

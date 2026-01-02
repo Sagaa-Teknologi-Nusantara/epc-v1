@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { useReportContext } from '@/contexts/ReportContext';
 import { ProjectReportSelector } from '@/components/ui/ProjectReportSelector';
 import { GaugeChart, SafetyPyramid, AreaChart } from '@/components/charts';
@@ -12,6 +12,20 @@ export default function DashboardPage() {
   const { selectedProject, selectedReport, loading, error } = useReportContext();
   const sCurveRef = useRef<HTMLDivElement>(null);
   const evmRef = useRef<HTMLDivElement>(null);
+
+  // Signal when page is ready for print (used by Data Management PDF export)
+  useEffect(() => {
+    if (!loading && selectedReport) {
+      // Set attribute to signal that page is fully loaded
+      document.body.setAttribute('data-print-ready', 'true');
+    } else {
+      document.body.removeAttribute('data-print-ready');
+    }
+    return () => {
+      document.body.removeAttribute('data-print-ready');
+    };
+  }, [loading, selectedReport]);
+
 
   // Image viewer state
   const [imageViewerOpen, setImageViewerOpen] = useState(false);

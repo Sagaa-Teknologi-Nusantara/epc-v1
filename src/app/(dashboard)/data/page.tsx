@@ -49,41 +49,65 @@ export default function DataPage() {
             return;
         }
 
-        showNotif(`Opening ${titles[pageType]} for print with selected project/report...`);
+        showNotif(`Opening ${titles[pageType]} - waiting for content to load...`);
 
-        // Wait for page to load then trigger print
-        printWindow.onload = () => {
-            // Add print-specific styles
-            const style = printWindow.document.createElement('style');
-            style.textContent = `
-                @media print {
-                    /* Hide sidebar and header for cleaner print */
-                    aside { display: none !important; }
-                    nav { display: none !important; }
-                    
-                    /* Make main content full width */
-                    main { 
-                        margin-left: 0 !important;
-                        padding: 20px !important;
-                    }
-                    
-                    /* Ensure charts are visible */
-                    svg { max-width: 100%; height: auto; }
-                    
-                    /* Page break settings */
-                    .card, .rounded-2xl { 
-                        page-break-inside: avoid; 
-                        break-inside: avoid;
-                    }
+        // Poll for ready state instead of using onload
+        let attempts = 0;
+        const maxAttempts = 60; // 30 seconds max (500ms * 60)
+
+        const checkReady = setInterval(() => {
+            attempts++;
+
+            try {
+                // Check if the page has signaled it's ready
+                const isReady = printWindow.document?.body?.getAttribute('data-print-ready') === 'true';
+
+                if (isReady) {
+                    clearInterval(checkReady);
+
+                    // Add print-specific styles
+                    const style = printWindow.document.createElement('style');
+                    style.textContent = `
+                        @media print {
+                            /* Hide sidebar and header for cleaner print */
+                            aside { display: none !important; }
+                            nav { display: none !important; }
+                            
+                            /* Make main content full width */
+                            main { 
+                                margin-left: 0 !important;
+                                padding: 20px !important;
+                            }
+                            
+                            /* Ensure charts are visible */
+                            svg { max-width: 100%; height: auto; }
+                            
+                            /* Page break settings */
+                            .card, .rounded-2xl { 
+                                page-break-inside: avoid; 
+                                break-inside: avoid;
+                            }
+                        }
+                    `;
+                    printWindow.document.head.appendChild(style);
+
+                    showNotif(`${titles[pageType]} ready! Opening print dialog...`);
+
+                    // Trigger print after styles are applied
+                    setTimeout(() => {
+                        printWindow.print();
+                    }, 500);
                 }
-            `;
-            printWindow.document.head.appendChild(style);
+            } catch {
+                // Cross-origin error or window still loading, continue polling
+            }
 
-            // Trigger print after styles are applied
-            setTimeout(() => {
-                printWindow.print();
-            }, 1000);
-        };
+            // Timeout check
+            if (attempts >= maxAttempts) {
+                clearInterval(checkReady);
+                showNotif('Page took too long to load. Try manually printing.', 'error');
+            }
+        }, 500);
     };
 
     // Print all pages: Opens each page sequentially

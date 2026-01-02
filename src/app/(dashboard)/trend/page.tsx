@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useReportContext } from '@/contexts/ReportContext';
 import { Icons } from '@/components/ui/Icons';
 import { ExportPDFButton } from '@/components/ui/ExportPDFButton';
@@ -236,6 +236,18 @@ export default function TrendPage() {
     const cashFlowChartRef = useRef<HTMLDivElement>(null);
     const safetyChartRef = useRef<HTMLDivElement>(null);
     const tkdnChartRef = useRef<HTMLDivElement>(null);
+
+    // Signal when page is ready for print (used by Data Management PDF export)
+    useEffect(() => {
+        if (!loading && reports.length > 0) {
+            document.body.setAttribute('data-print-ready', 'true');
+        } else {
+            document.body.removeAttribute('data-print-ready');
+        }
+        return () => {
+            document.body.removeAttribute('data-print-ready');
+        };
+    }, [loading, reports]);
 
     // Get project reports for selected project
     const projectReports = useMemo(() => {
