@@ -468,19 +468,41 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Cash Flow Status */}
-        <div className={`rounded-2xl p-4 shadow-sm ${selectedReport?.cashFlow?.overallStatus === 'green' ? 'bg-green-50' :
-          selectedReport?.cashFlow?.overallStatus === 'yellow' ? 'bg-amber-50' : 'bg-red-50'
-          }`}>
-          <p className="text-xs font-semibold text-slate-500">💵 Cash Flow</p>
-          <p className="mt-2 text-lg font-extrabold">
-            {selectedReport?.cashFlow?.overallStatus === 'green' ? '🟢 Healthy' :
-              selectedReport?.cashFlow?.overallStatus === 'yellow' ? '🟡 Monitor' : '🔴 At Risk'}
-          </p>
-          <p className="mt-1 text-[10px] text-slate-400">
-            Score: {((selectedReport?.cashFlow?.overallScore || 0) * 100).toFixed(0)}%
-          </p>
-        </div>
+        {/* Cash Flow Status - Use same real-time calculation as Dashboard */}
+        {(() => {
+          const cf = selectedReport?.cashFlow || {};
+          const cashIn = cf.cashIn || 0;
+          const cashOut = cf.cashOut || 0;
+          const billing = cf.billing || 0;
+          const revenue = cf.revenue || evm.bcwp || 1;
+
+          // Calculate ratios for overall score (same as Dashboard)
+          const balanceOk = cashIn >= cashOut ? 1 : 0;
+          const billingCoverage = revenue > 0 ? billing / revenue : 0;
+          const billingOk = billingCoverage >= 0.95 ? 1 : billingCoverage >= 0.85 ? 0.5 : 0;
+          const collectionRatio = billing > 0 ? cashIn / billing : 0;
+          const collectionOk = collectionRatio >= 0.9 ? 1 : collectionRatio >= 0.8 ? 0.5 : 0;
+          const adequacyRatio = cashOut > 0 ? cashIn / cashOut : 0;
+          const adequacyOk = adequacyRatio >= 1.0 ? 1 : adequacyRatio >= 0.9 ? 0.5 : 0;
+
+          const overallScore = (balanceOk + billingOk + collectionOk + adequacyOk) / 4;
+          const overallStatus = overallScore >= 0.75 ? 'green' : overallScore >= 0.5 ? 'yellow' : 'red';
+
+          return (
+            <div className={`rounded-2xl p-4 shadow-sm ${overallStatus === 'green' ? 'bg-green-50' :
+              overallStatus === 'yellow' ? 'bg-amber-50' : 'bg-red-50'
+              }`}>
+              <p className="text-xs font-semibold text-slate-500">💵 Cash Flow</p>
+              <p className="mt-2 text-lg font-extrabold">
+                {overallStatus === 'green' ? '🟢 Healthy' :
+                  overallStatus === 'yellow' ? '🟡 At Risk' : '🔴 Critical'}
+              </p>
+              <p className="mt-1 text-[10px] text-slate-400">
+                Score: {(overallScore * 100).toFixed(0)}%
+              </p>
+            </div>
+          );
+        })()}
       </div>
 
 
