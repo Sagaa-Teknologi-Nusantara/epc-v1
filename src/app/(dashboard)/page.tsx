@@ -323,44 +323,78 @@ export default function DashboardPage() {
       </div>
 
       {/* Project Info Cards - Enhanced */}
-      {selectedProject && (
-        <div className="rounded-2xl bg-gradient-to-r from-teal-500 to-teal-600 p-4 text-white">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-            <div className="rounded-lg bg-white/10 p-3">
-              <p className="text-[10px] opacity-80">Owner</p>
-              <p className="text-sm font-semibold">{selectedProject.owner || '-'}</p>
+      {selectedProject && (() => {
+        // Calculate duration in days
+        const scheduleDuration = selectedProject.startDate && selectedProject.finishDate
+          ? Math.ceil((new Date(selectedProject.finishDate).getTime() - new Date(selectedProject.startDate).getTime()) / (1000 * 60 * 60 * 24))
+          : 0;
+
+        return (
+          <div className="rounded-2xl bg-gradient-to-br from-teal-50 to-cyan-50 border-2 border-teal-200 p-4">
+            <h3 className="text-sm font-bold text-teal-700 mb-3">📋 Project Information</h3>
+
+            {/* Row 1: Owner, Contractor, Contract Type, Term of Payment */}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 mb-2">
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-[10px] text-slate-500">Owner</p>
+                <p className="text-xs font-semibold">{selectedProject.owner || '-'}</p>
+              </div>
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-[10px] text-slate-500">Contractor</p>
+                <p className="text-xs font-semibold">{selectedProject.contractor || '-'}</p>
+              </div>
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-[10px] text-slate-500">Contract Type</p>
+                <p className="text-xs font-semibold">{selectedProject.contractType || '-'}</p>
+              </div>
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-[10px] text-slate-500">Term of Payment</p>
+                <p className="text-xs font-semibold">{(selectedProject as unknown as { termOfPayment?: string }).termOfPayment || 'NET 30'}</p>
+              </div>
             </div>
-            <div className="rounded-lg bg-white/10 p-3">
-              <p className="text-[10px] opacity-80">Contractor</p>
-              <p className="text-sm font-semibold">{selectedProject.contractor || '-'}</p>
+
+            {/* Row 2: Contract Price, Start Date, Finish Date, Duration, Guaranteed Power */}
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 mb-2">
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-[10px] text-slate-500">Contract Price</p>
+                <p className="text-sm font-bold text-teal-600">${((selectedProject.contractPrice || 0) / 1e6).toFixed(2)}M</p>
+              </div>
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-[10px] text-slate-500">Start Date</p>
+                <p className="text-xs font-semibold">{selectedProject.startDate || '-'}</p>
+              </div>
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-[10px] text-slate-500">Finish Date</p>
+                <p className="text-xs font-semibold">{selectedProject.finishDate || '-'}</p>
+              </div>
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-[10px] text-slate-500">Duration</p>
+                <p className="text-xs font-semibold">{scheduleDuration} days</p>
+              </div>
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-[10px] text-slate-500">Guaranteed Power</p>
+                <p className="text-sm font-bold text-blue-600">{(selectedProject as unknown as { guaranteedPower?: number }).guaranteedPower || 0} MW</p>
+              </div>
             </div>
-            <div className="rounded-lg bg-white/10 p-3">
-              <p className="text-[10px] opacity-80">Contract Type</p>
-              <p className="text-sm font-semibold">{selectedProject.contractType || '-'}</p>
-            </div>
-            <div className="rounded-lg bg-white/10 p-3">
-              <p className="text-[10px] opacity-80">Term of Payment</p>
-              <p className="text-sm font-semibold">{(selectedProject as unknown as { termOfPayment?: string }).termOfPayment || 'NET 30'}</p>
-            </div>
-            <div className="rounded-lg bg-white/10 p-3">
-              <p className="text-[10px] opacity-80">Contract Price</p>
-              <p className="text-sm font-bold">${((selectedProject.contractPrice || 0) / 1e6).toFixed(2)}M</p>
-            </div>
-            <div className="rounded-lg bg-white/10 p-3">
-              <p className="text-[10px] opacity-80">Duration</p>
-              <p className="text-sm font-semibold">{selectedProject.startDate} - {selectedProject.finishDate}</p>
-            </div>
-            <div className="rounded-lg bg-white/10 p-3">
-              <p className="text-[10px] opacity-80">Guaranteed Power</p>
-              <p className="text-sm font-semibold">{(selectedProject as unknown as { guaranteedPower?: number }).guaranteedPower || 0} MW</p>
-            </div>
-            <div className="rounded-lg bg-white/10 p-3">
-              <p className="text-[10px] opacity-80">LD Rate (Delay)</p>
-              <p className="text-sm font-semibold">{((selectedProject as unknown as { ldDelayRate?: number }).ldDelayRate || 0.1) * 100}%/day</p>
+
+            {/* Row 3: LD Delay Rate, LD Performance Rate, Scope by Owner */}
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-[10px] text-slate-500">LD Delay Rate</p>
+                <p className="text-xs font-semibold">${((selectedProject as unknown as { ldDelay?: number }).ldDelay || 0).toLocaleString()}/day</p>
+              </div>
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-[10px] text-slate-500">LD Performance Rate</p>
+                <p className="text-xs font-semibold">${((selectedProject as unknown as { ldPerformance?: number }).ldPerformance || 0).toLocaleString()}/kW</p>
+              </div>
+              <div className="rounded-lg bg-white p-3">
+                <p className="text-[10px] text-slate-500">Scope by Owner</p>
+                <p className="text-xs font-semibold">{(selectedProject as unknown as { scopeByOwner?: string }).scopeByOwner || '-'}</p>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
 
       {/* KPI Cards Row - 6 Cards */}
@@ -406,15 +440,22 @@ export default function DashboardPage() {
         </div>
 
         {/* EAC */}
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <p className="text-xs font-semibold text-slate-500">📉 EAC</p>
-          <p className="mt-2 text-2xl font-extrabold text-slate-700">
-            ${(((evm as { eac?: number }).eac || evm.bac || 0) / 1e6).toFixed(2)}M
-          </p>
-          <p className="mt-1 text-[10px] text-slate-400">
-            BAC: ${((evm.bac || 0) / 1e6).toFixed(2)}M
-          </p>
-        </div>
+        {(() => {
+          // Calculate EAC properly: use stored value or calculate from BAC/CPI
+          const eacValue = (evm as { eac?: number }).eac || (evm.cpiValue > 0 ? evm.bac / evm.cpiValue : evm.bac);
+          const vacValue = evm.bac - eacValue;
+          return (
+            <div className={`rounded-2xl p-4 shadow-sm ${vacValue >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+              <p className="text-xs font-semibold text-slate-500">📉 EAC (Typical)</p>
+              <p className="mt-2 text-2xl font-extrabold text-slate-700">
+                ${(eacValue / 1e6).toFixed(2)}M
+              </p>
+              <p className={`mt-1 text-[10px] ${vacValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                VAC: {vacValue >= 0 ? '+' : ''}${(vacValue / 1e6).toFixed(2)}M
+              </p>
+            </div>
+          );
+        })()}
 
         {/* Safe Hours */}
         <div className="rounded-2xl bg-white p-4 shadow-sm">
@@ -437,7 +478,7 @@ export default function DashboardPage() {
               selectedReport?.cashFlow?.overallStatus === 'yellow' ? '🟡 Monitor' : '🔴 At Risk'}
           </p>
           <p className="mt-1 text-[10px] text-slate-400">
-            Score: {(selectedReport?.cashFlow?.overallScore || 0).toFixed(0)}/100
+            Score: {((selectedReport?.cashFlow?.overallScore || 0) * 100).toFixed(0)}%
           </p>
         </div>
       </div>
@@ -915,7 +956,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Cash Flow Bar Chart Section */}
+      {/* Cash Flow Details Section - COMMENTED OUT
       {selectedReport?.cashFlow && (
         <div className="rounded-2xl bg-white p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-bold">💵 Cash Flow Details</h3>
@@ -954,6 +995,7 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+      */}
 
       {/* HSE & Quality Row */}
       <div className="grid gap-5 lg:grid-cols-2">
