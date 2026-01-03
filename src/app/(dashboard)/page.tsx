@@ -441,8 +441,11 @@ export default function DashboardPage() {
 
         {/* EAC */}
         {(() => {
-          // Calculate EAC properly: use stored value or calculate from BAC/CPI
-          const eacValue = (evm as { eac?: number }).eac || (evm.cpiValue > 0 ? evm.bac / evm.cpiValue : evm.bac);
+          // Calculate EAC properly: use stored value (eac or eacTypical) or calculate from BAC/CPI
+          const evmData = evm as { eac?: number; eacTypical?: number };
+          const storedEac = evmData.eac || evmData.eacTypical;
+          const calculatedEac = evm.cpiValue > 0 ? evm.bac / evm.cpiValue : evm.bac;
+          const eacValue = storedEac && storedEac > 0 ? storedEac : calculatedEac;
           const vacValue = evm.bac - eacValue;
           return (
             <div className={`rounded-2xl p-4 shadow-sm ${vacValue >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
@@ -470,7 +473,7 @@ export default function DashboardPage() {
 
         {/* Cash Flow Status - Use same real-time calculation as Dashboard */}
         {(() => {
-          const cf = selectedReport?.cashFlow || {};
+          const cf = (selectedReport?.cashFlow || {}) as { cashIn?: number; cashOut?: number; billing?: number; revenue?: number };
           const cashIn = cf.cashIn || 0;
           const cashOut = cf.cashOut || 0;
           const billing = cf.billing || 0;
