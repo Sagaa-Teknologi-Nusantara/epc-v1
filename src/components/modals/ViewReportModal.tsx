@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Icons } from '@/components/ui/Icons';
-import { calculateCashFlowStatus } from '@/lib/calculations';
+import { calculateCashFlowStatus, calculateEVM } from '@/lib/calculations';
 import type { Report } from '@/types';
 
 interface ViewReportModalProps {
@@ -27,11 +27,26 @@ export function ViewReportModal({ isOpen, onClose, report, projectName }: ViewRe
     const cashFlow = report.cashFlow || {};
     const tkdn = report.tkdn || { plan: 0, actual: 0 };
 
+    // Calculate EVM values in real-time (same formulas as calculations/evm.ts)
+    const evmCalc = calculateEVM(evm.bcws || 0, evm.bcwp || 0, evm.acwp || 0, evm.bac || 0);
+
     // Calculate Cash Flow status using real-time calculation (same as Dashboard)
     const cfStatus = calculateCashFlowStatus(cashFlow as unknown as Record<string, number>, evm.bcwp || 0);
 
-    const spiColor = (evm.spiValue || 0) >= 1 ? 'text-green-600' : (evm.spiValue || 0) >= 0.9 ? 'text-amber-600' : 'text-red-600';
-    const cpiColor = (evm.cpiValue || 0) >= 1 ? 'text-green-600' : (evm.cpiValue || 0) >= 0.9 ? 'text-amber-600' : 'text-red-600';
+    // Calculate Cash Flow ratios in real-time
+    const cfData = cashFlow as unknown as Record<string, number>;
+    const cfRevenue = cfData?.revenue || evm.bcwp || 0;
+    const cfCashOut = cfData?.cashOut || 0;
+    const cfBilling = cfData?.billing || 0;
+    const cfCashIn = cfData?.cashIn || 0;
+    const cfBillingCoverage = cfRevenue > 0 ? cfBilling / cfRevenue : 0;
+    const cfCashCollection = cfBilling > 0 ? cfCashIn / cfBilling : 0;
+    const cfCashBalance = cfCashIn - cfCashOut;
+    const cfBurnRate = cfCashOut / (report.weekNo || 1);
+
+    const spiColor = (evmCalc.spiValue || 0) >= 1 ? 'text-green-600' : (evmCalc.spiValue || 0) >= 0.9 ? 'text-amber-600' : 'text-red-600';
+    const cpiColor = (evmCalc.cpiValue || 0) >= 1 ? 'text-green-600' : (evmCalc.cpiValue || 0) >= 0.9 ? 'text-amber-600' : 'text-red-600';
+
 
     const tabs = [
         { id: 'overview' as TabId, label: '📊 Overview' },
@@ -226,28 +241,47 @@ export function ViewReportModal({ isOpen, onClose, report, projectName }: ViewRe
                             {/* EVM Details */}
                             <div className="rounded-xl bg-white p-4 shadow-sm">
                                 <h3 className="text-sm font-bold mb-4">📈 Earned Value Management</h3>
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div className={`rounded-lg p-4 text-center ${(evm.spiValue || 0) >= 1 ? 'bg-green-50 border-2 border-green-500' : (evm.spiValue || 0) >= 0.9 ? 'bg-amber-50 border-2 border-amber-500' : 'bg-red-50 border-2 border-red-500'}`}>
+                                {/* SPI & CPI Row */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                    <div className={`rounded-lg p-4 text-center ${(evmCalc.spiValue || 0) >= 1 ? 'bg-green-50 border-2 border-green-500' : (evmCalc.spiValue || 0) >= 0.9 ? 'bg-amber-50 border-2 border-amber-500' : 'bg-red-50 border-2 border-red-500'}`}>
                                         <p className="text-xs text-slate-500">Schedule Performance</p>
-                                        <p className={`text-3xl font-extrabold ${spiColor}`}>{(evm.spiValue || 0).toFixed(3)}</p>
-                                        <p className="text-xs text-slate-500">SPI</p>
+                                        <p className={`text-3xl font-extrabold ${spiColor}`}>{(evmCalc.spiValue || 0).toFixed(3)}</p>
+                                        <p className="text-xs text-slate-500">SPI = BCWP / BCWS</p>
                                     </div>
-                                    <div className={`rounded-lg p-4 text-center ${(evm.cpiValue || 0) >= 1 ? 'bg-green-50 border-2 border-green-500' : (evm.cpiValue || 0) >= 0.9 ? 'bg-amber-50 border-2 border-amber-500' : 'bg-red-50 border-2 border-red-500'}`}>
+                                    <div className={`rounded-lg p-4 text-center ${(evmCalc.cpiValue || 0) >= 1 ? 'bg-green-50 border-2 border-green-500' : (evmCalc.cpiValue || 0) >= 0.9 ? 'bg-amber-50 border-2 border-amber-500' : 'bg-red-50 border-2 border-red-500'}`}>
                                         <p className="text-xs text-slate-500">Cost Performance</p>
-                                        <p className={`text-3xl font-extrabold ${cpiColor}`}>{(evm.cpiValue || 0).toFixed(3)}</p>
-                                        <p className="text-xs text-slate-500">CPI</p>
+                                        <p className={`text-3xl font-extrabold ${cpiColor}`}>{(evmCalc.cpiValue || 0).toFixed(3)}</p>
+                                        <p className="text-xs text-slate-500">CPI = BCWP / ACWP</p>
+                                    </div>
+                                    <div className="rounded-lg bg-blue-50 p-4 text-center">
+                                        <p className="text-xs text-slate-500">Budget at Completion</p>
+                                        <p className="text-2xl font-extrabold text-blue-600">${((evmCalc.bac || 0) / 1e6).toFixed(2)}M</p>
+                                        <p className="text-xs text-slate-500">BAC</p>
+                                    </div>
+                                    <div className={`rounded-lg p-4 text-center ${(evmCalc.vac || 0) >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                                        <p className="text-xs text-slate-500">Variance at Completion</p>
+                                        <p className={`text-2xl font-extrabold ${(evmCalc.vac || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {(evmCalc.vac || 0) >= 0 ? '+' : ''}${((evmCalc.vac || 0) / 1e6).toFixed(2)}M
+                                        </p>
+                                        <p className="text-xs text-slate-500">VAC = BAC - EAC</p>
+                                    </div>
+                                </div>
+                                {/* EAC Variants Row */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="rounded-lg bg-purple-50 p-4 text-center">
+                                        <p className="text-xs text-slate-500">EAC (Typical)</p>
+                                        <p className="text-2xl font-extrabold text-purple-600">${((evmCalc.eacTypical || 0) / 1e6).toFixed(2)}M</p>
+                                        <p className="text-xs text-slate-400">= BAC / CPI</p>
                                     </div>
                                     <div className="rounded-lg bg-slate-50 p-4 text-center">
-                                        <p className="text-xs text-slate-500">Estimate at Completion</p>
-                                        <p className="text-2xl font-extrabold">${((evm.eac || 0) / 1e6).toFixed(2)}M</p>
-                                        <p className="text-xs text-slate-500">EAC</p>
+                                        <p className="text-xs text-slate-500">EAC (Atypical)</p>
+                                        <p className="text-2xl font-extrabold text-slate-600">${((evmCalc.eacAtypical || 0) / 1e6).toFixed(2)}M</p>
+                                        <p className="text-xs text-slate-400">= ACWP + (BAC - BCWP)</p>
                                     </div>
-                                    <div className={`rounded-lg p-4 text-center ${(evm.vac || 0) >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
-                                        <p className="text-xs text-slate-500">Variance at Completion</p>
-                                        <p className={`text-2xl font-extrabold ${(evm.vac || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            ${((evm.vac || 0) / 1e6).toFixed(2)}M
-                                        </p>
-                                        <p className="text-xs text-slate-500">VAC</p>
+                                    <div className="rounded-lg bg-teal-50 p-4 text-center">
+                                        <p className="text-xs text-slate-500">EAC (Combined)</p>
+                                        <p className="text-2xl font-extrabold text-teal-600">${((evmCalc.eacCombined || 0) / 1e6).toFixed(2)}M</p>
+                                        <p className="text-xs text-slate-400">= ACWP + (BAC-BCWP)/(CPI×SPI)</p>
                                     </div>
                                 </div>
                             </div>
@@ -286,20 +320,20 @@ export function ViewReportModal({ isOpen, onClose, report, projectName }: ViewRe
                                 <h3 className="text-sm font-bold mb-4">💵 Cash Flow Summary</h3>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <div className="rounded-lg bg-green-50 p-4 text-center">
-                                        <p className="text-xs text-slate-500 mb-2">Revenue</p>
-                                        <p className="text-xl font-extrabold text-green-600">${((cashFlow.revenue || 0) / 1e6).toFixed(2)}M</p>
+                                        <p className="text-xs text-slate-500 mb-2">Revenue (BCWP)</p>
+                                        <p className="text-xl font-extrabold text-green-600">${(cfRevenue / 1e6).toFixed(2)}M</p>
                                     </div>
                                     <div className="rounded-lg bg-red-50 p-4 text-center">
                                         <p className="text-xs text-slate-500 mb-2">Cash Out</p>
-                                        <p className="text-xl font-extrabold text-red-600">${((cashFlow.cashOut || 0) / 1e6).toFixed(2)}M</p>
+                                        <p className="text-xl font-extrabold text-red-600">${(cfCashOut / 1e6).toFixed(2)}M</p>
                                     </div>
                                     <div className="rounded-lg bg-blue-50 p-4 text-center">
                                         <p className="text-xs text-slate-500 mb-2">Billing</p>
-                                        <p className="text-xl font-extrabold text-blue-600">${((cashFlow.billing || 0) / 1e6).toFixed(2)}M</p>
+                                        <p className="text-xl font-extrabold text-blue-600">${(cfBilling / 1e6).toFixed(2)}M</p>
                                     </div>
                                     <div className="rounded-lg bg-purple-50 p-4 text-center">
                                         <p className="text-xs text-slate-500 mb-2">Cash In</p>
-                                        <p className="text-xl font-extrabold text-purple-600">${((cashFlow.cashIn || 0) / 1e6).toFixed(2)}M</p>
+                                        <p className="text-xl font-extrabold text-purple-600">${(cfCashIn / 1e6).toFixed(2)}M</p>
                                     </div>
                                 </div>
                             </div>
@@ -307,21 +341,25 @@ export function ViewReportModal({ isOpen, onClose, report, projectName }: ViewRe
                             <div className="rounded-xl bg-white p-4 shadow-sm">
                                 <h3 className="text-sm font-bold mb-4">📊 Cash Flow Ratios</h3>
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div className="rounded-lg bg-slate-50 p-3 text-center">
+                                    <div className={`rounded-lg p-3 text-center ${cfBillingCoverage >= 0.95 ? 'bg-green-50' : cfBillingCoverage >= 0.85 ? 'bg-amber-50' : 'bg-red-50'}`}>
                                         <p className="text-xs text-slate-500">Billing Coverage</p>
-                                        <p className="text-lg font-bold text-amber-600">{((cashFlow.billingCoverageRatio || 0) * 100).toFixed(1)}%</p>
+                                        <p className={`text-lg font-bold ${cfBillingCoverage >= 0.95 ? 'text-green-600' : cfBillingCoverage >= 0.85 ? 'text-amber-600' : 'text-red-600'}`}>{(cfBillingCoverage * 100).toFixed(1)}%</p>
+                                        <p className="text-xs text-slate-400">= Billing / Revenue</p>
                                     </div>
-                                    <div className="rounded-lg bg-slate-50 p-3 text-center">
+                                    <div className={`rounded-lg p-3 text-center ${cfCashCollection >= 0.9 ? 'bg-green-50' : cfCashCollection >= 0.8 ? 'bg-amber-50' : 'bg-red-50'}`}>
                                         <p className="text-xs text-slate-500">Cash Collection</p>
-                                        <p className="text-lg font-bold text-teal-600">{((cashFlow.cashCollectionRatio || 0) * 100).toFixed(1)}%</p>
+                                        <p className={`text-lg font-bold ${cfCashCollection >= 0.9 ? 'text-green-600' : cfCashCollection >= 0.8 ? 'text-amber-600' : 'text-red-600'}`}>{(cfCashCollection * 100).toFixed(1)}%</p>
+                                        <p className="text-xs text-slate-400">= Cash In / Billing</p>
                                     </div>
-                                    <div className="rounded-lg bg-slate-50 p-3 text-center">
+                                    <div className={`rounded-lg p-3 text-center ${cfCashBalance >= 0 ? 'bg-green-50' : 'bg-red-50'}`}>
                                         <p className="text-xs text-slate-500">Cash Balance</p>
-                                        <p className="text-lg font-bold text-blue-600">${((cashFlow.cashFlowBalance || 0) / 1e6).toFixed(2)}M</p>
+                                        <p className={`text-lg font-bold ${cfCashBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>${(cfCashBalance / 1e6).toFixed(2)}M</p>
+                                        <p className="text-xs text-slate-400">= Cash In - Cash Out</p>
                                     </div>
                                     <div className="rounded-lg bg-slate-50 p-3 text-center">
-                                        <p className="text-xs text-slate-500">Burn Rate</p>
-                                        <p className="text-lg font-bold text-slate-600">${((cashFlow.cashBurnRate || 0) / 1e6).toFixed(2)}M</p>
+                                        <p className="text-xs text-slate-500">Burn Rate/Week</p>
+                                        <p className="text-lg font-bold text-slate-600">${(cfBurnRate / 1e6).toFixed(2)}M</p>
+                                        <p className="text-xs text-slate-400">= Cash Out / Weeks</p>
                                     </div>
                                 </div>
                             </div>

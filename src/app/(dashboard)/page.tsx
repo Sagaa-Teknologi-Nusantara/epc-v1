@@ -196,43 +196,57 @@ export default function DashboardPage() {
     }
 
     // Milestones
-    const msSchedule = (selectedReport?.milestonesSchedule || []) as Array<{ name?: string; planDate?: string; actualForecastDate?: string; status?: string }>;
-    const msPayment = (selectedReport?.milestonesPayment || []) as Array<{ name?: string; planDate?: string; actualForecastDate?: string; status?: string }>;
+    const msSchedule = (selectedReport?.milestonesSchedule || []) as Array<{ no?: number; description?: string; name?: string; planDate?: string; actualForecastDate?: string; status?: string }>;
+    const msPayment = (selectedReport?.milestonesPayment || []) as Array<{ no?: number; description?: string; name?: string; planDate?: string; actualForecastDate?: string; status?: string }>;
 
     if (msSchedule.length > 0 || msPayment.length > 0) {
       exporter.addSpacing();
       exporter.addSectionTitle('Milestones');
 
       if (msSchedule.length > 0) {
-        exporter.addText('Schedule Milestones:', 'normal');
-        msSchedule.slice(0, 8).forEach(m => {
-          const status = m.status === 'Completed' ? 'good' : m.status === 'Delay' ? 'bad' : 'neutral';
+        exporter.addText('📅 Schedule Milestones', 'normal');
+        // Table header
+        exporter.addStatsRow([
+          { label: 'No', value: 'Description', status: 'neutral' },
+          { label: 'Plan', value: 'Actual/FC', status: 'neutral' },
+          { label: 'Status', value: '', status: 'neutral' },
+        ]);
+        // Table rows
+        msSchedule.slice(0, 10).forEach((m, idx) => {
+          const status = m.status === 'Completed' ? 'good' : m.status === 'Delay' || m.status === 'Delayed' || m.status === 'Critical' || m.status === 'Overdue' ? 'bad' : 'warning';
+          const desc = m.description || m.name || `Milestone ${idx + 1}`;
           exporter.addStatsRow([
-            { label: m.name || 'Milestone', value: '', status: 'neutral' },
-            { label: 'Plan', value: m.planDate || '-', status: 'neutral' },
-            { label: 'Actual/FC', value: m.actualForecastDate || '-', status: 'neutral' },
-            { label: 'Status', value: m.status || '-', status: status as 'good' | 'bad' | 'neutral' },
+            { label: `${m.no || idx + 1}`, value: desc.length > 40 ? desc.substring(0, 40) + '...' : desc, status: 'neutral' },
+            { label: m.planDate || '-', value: m.actualForecastDate || '-', status: 'neutral' },
+            { label: m.status || '-', value: '', status: status as 'good' | 'bad' | 'warning' },
           ]);
         });
-        if (msSchedule.length > 8) {
-          exporter.addText(`... and ${msSchedule.length - 8} more milestones`, 'small');
+        if (msSchedule.length > 10) {
+          exporter.addText(`... and ${msSchedule.length - 10} more schedule milestones`, 'small');
         }
       }
 
       if (msPayment.length > 0) {
         exporter.addSpacing(3);
-        exporter.addText('Payment Milestones:', 'normal');
-        msPayment.slice(0, 8).forEach(m => {
-          const status = m.status === 'Completed' ? 'good' : m.status === 'Delay' ? 'bad' : 'neutral';
+        exporter.addText('💰 Payment Milestones', 'normal');
+        // Table header
+        exporter.addStatsRow([
+          { label: 'No', value: 'Description', status: 'neutral' },
+          { label: 'Plan', value: 'Actual/FC', status: 'neutral' },
+          { label: 'Status', value: '', status: 'neutral' },
+        ]);
+        // Table rows
+        msPayment.slice(0, 10).forEach((m, idx) => {
+          const status = m.status === 'Completed' ? 'good' : m.status === 'Delay' || m.status === 'Delayed' || m.status === 'Critical' || m.status === 'Overdue' ? 'bad' : 'warning';
+          const desc = m.description || m.name || `Payment ${idx + 1}`;
           exporter.addStatsRow([
-            { label: m.name || 'Payment', value: '', status: 'neutral' },
-            { label: 'Plan', value: m.planDate || '-', status: 'neutral' },
-            { label: 'Actual/FC', value: m.actualForecastDate || '-', status: 'neutral' },
-            { label: 'Status', value: m.status || '-', status: status as 'good' | 'bad' | 'neutral' },
+            { label: `${m.no || idx + 1}`, value: desc.length > 40 ? desc.substring(0, 40) + '...' : desc, status: 'neutral' },
+            { label: m.planDate || '-', value: m.actualForecastDate || '-', status: 'neutral' },
+            { label: m.status || '-', value: '', status: status as 'good' | 'bad' | 'warning' },
           ]);
         });
-        if (msPayment.length > 8) {
-          exporter.addText(`... and ${msPayment.length - 8} more milestones`, 'small');
+        if (msPayment.length > 10) {
+          exporter.addText(`... and ${msPayment.length - 10} more payment milestones`, 'small');
         }
       }
     }
