@@ -204,49 +204,33 @@ export default function DashboardPage() {
       exporter.addSectionTitle('Milestones');
 
       if (msSchedule.length > 0) {
-        exporter.addText('📅 Schedule Milestones', 'normal');
-        // Table header
-        exporter.addStatsRow([
-          { label: 'No', value: 'Description', status: 'neutral' },
-          { label: 'Plan', value: 'Actual/FC', status: 'neutral' },
-          { label: 'Status', value: '', status: 'neutral' },
-        ]);
-        // Table rows
-        msSchedule.slice(0, 10).forEach((m, idx) => {
-          const status = m.status === 'Completed' ? 'good' : m.status === 'Delay' || m.status === 'Delayed' || m.status === 'Critical' || m.status === 'Overdue' ? 'bad' : 'warning';
+        exporter.addText('Schedule Milestones:', 'normal');
+        msSchedule.slice(0, 12).forEach((m, idx) => {
           const desc = m.description || m.name || `Milestone ${idx + 1}`;
-          exporter.addStatsRow([
-            { label: `${m.no || idx + 1}`, value: desc.length > 40 ? desc.substring(0, 40) + '...' : desc, status: 'neutral' },
-            { label: m.planDate || '-', value: m.actualForecastDate || '-', status: 'neutral' },
-            { label: m.status || '-', value: '', status: status as 'good' | 'bad' | 'warning' },
-          ]);
+          const displayDesc = desc.length > 50 ? desc.substring(0, 50) + '...' : desc;
+          exporter.addKeyValue(
+            `${m.no || idx + 1}. ${displayDesc}`,
+            `Plan: ${m.planDate || '-'} | Actual: ${m.actualForecastDate || '-'} | ${m.status || '-'}`
+          );
         });
-        if (msSchedule.length > 10) {
-          exporter.addText(`... and ${msSchedule.length - 10} more schedule milestones`, 'small');
+        if (msSchedule.length > 12) {
+          exporter.addText(`... and ${msSchedule.length - 12} more`, 'small');
         }
       }
 
       if (msPayment.length > 0) {
         exporter.addSpacing(3);
-        exporter.addText('💰 Payment Milestones', 'normal');
-        // Table header
-        exporter.addStatsRow([
-          { label: 'No', value: 'Description', status: 'neutral' },
-          { label: 'Plan', value: 'Actual/FC', status: 'neutral' },
-          { label: 'Status', value: '', status: 'neutral' },
-        ]);
-        // Table rows
-        msPayment.slice(0, 10).forEach((m, idx) => {
-          const status = m.status === 'Completed' ? 'good' : m.status === 'Delay' || m.status === 'Delayed' || m.status === 'Critical' || m.status === 'Overdue' ? 'bad' : 'warning';
+        exporter.addText('Payment Milestones:', 'normal');
+        msPayment.slice(0, 12).forEach((m, idx) => {
           const desc = m.description || m.name || `Payment ${idx + 1}`;
-          exporter.addStatsRow([
-            { label: `${m.no || idx + 1}`, value: desc.length > 40 ? desc.substring(0, 40) + '...' : desc, status: 'neutral' },
-            { label: m.planDate || '-', value: m.actualForecastDate || '-', status: 'neutral' },
-            { label: m.status || '-', value: '', status: status as 'good' | 'bad' | 'warning' },
-          ]);
+          const displayDesc = desc.length > 50 ? desc.substring(0, 50) + '...' : desc;
+          exporter.addKeyValue(
+            `${m.no || idx + 1}. ${displayDesc}`,
+            `Plan: ${m.planDate || '-'} | Actual: ${m.actualForecastDate || '-'} | ${m.status || '-'}`
+          );
         });
-        if (msPayment.length > 10) {
-          exporter.addText(`... and ${msPayment.length - 10} more payment milestones`, 'small');
+        if (msPayment.length > 12) {
+          exporter.addText(`... and ${msPayment.length - 12} more`, 'small');
         }
       }
     }
