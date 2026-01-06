@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Icons } from '@/components/ui/Icons';
+import { calculateCashFlowStatus } from '@/lib/calculations';
 import type { Report } from '@/types';
 
 interface ViewReportModalProps {
@@ -25,6 +26,9 @@ export function ViewReportModal({ isOpen, onClose, report, projectName }: ViewRe
     const quality = report.quality || {};
     const cashFlow = report.cashFlow || {};
     const tkdn = report.tkdn || { plan: 0, actual: 0 };
+
+    // Calculate Cash Flow status using real-time calculation (same as Dashboard)
+    const cfStatus = calculateCashFlowStatus(cashFlow as unknown as Record<string, number>, evm.bcwp || 0);
 
     const spiColor = (evm.spiValue || 0) >= 1 ? 'text-green-600' : (evm.spiValue || 0) >= 0.9 ? 'text-amber-600' : 'text-red-600';
     const cpiColor = (evm.cpiValue || 0) >= 1 ? 'text-green-600' : (evm.cpiValue || 0) >= 0.9 ? 'text-amber-600' : 'text-red-600';
@@ -137,13 +141,13 @@ export function ViewReportModal({ isOpen, onClose, report, projectName }: ViewRe
                                     <p className="text-2xl font-extrabold text-blue-600">{((hse.safeHours || 0) / 1000).toFixed(0)}K</p>
                                     <p className="text-xs text-slate-500">TRIR: {(hse.trir || 0).toFixed(2)}</p>
                                 </div>
-                                <div className={`rounded-xl p-4 shadow-sm ${cashFlow.overallStatus === 'green' ? 'bg-green-50' : cashFlow.overallStatus === 'yellow' ? 'bg-amber-50' : 'bg-red-50'
+                                <div className={`rounded-xl p-4 shadow-sm ${cfStatus.overallStatus === 'green' ? 'bg-green-50' : cfStatus.overallStatus === 'yellow' ? 'bg-amber-50' : 'bg-red-50'
                                     }`}>
                                     <p className="text-xs text-slate-500 mb-1">💵 Cash Flow</p>
                                     <p className="text-2xl font-extrabold">
-                                        {cashFlow.overallStatus === 'green' ? '🟢' : cashFlow.overallStatus === 'yellow' ? '🟡' : '🔴'}
+                                        {cfStatus.overallStatus === 'green' ? '🟢' : cfStatus.overallStatus === 'yellow' ? '🟡' : '🔴'}
                                     </p>
-                                    <p className="text-xs text-slate-500">Score: {(cashFlow.overallScore || 0).toFixed(0)}/100</p>
+                                    <p className="text-xs text-slate-500">Score: {(cfStatus.overallScore * 100).toFixed(0)}%</p>
                                 </div>
                             </div>
 
@@ -322,8 +326,8 @@ export function ViewReportModal({ isOpen, onClose, report, projectName }: ViewRe
                                 </div>
                             </div>
 
-                            <div className={`rounded-xl p-4 shadow-sm ${cashFlow.overallStatus === 'green' ? 'bg-green-100 border-2 border-green-500' :
-                                cashFlow.overallStatus === 'yellow' ? 'bg-amber-100 border-2 border-amber-500' : 'bg-red-100 border-2 border-red-500'
+                            <div className={`rounded-xl p-4 shadow-sm ${cfStatus.overallStatus === 'green' ? 'bg-green-100 border-2 border-green-500' :
+                                cfStatus.overallStatus === 'yellow' ? 'bg-amber-100 border-2 border-amber-500' : 'bg-red-100 border-2 border-red-500'
                                 }`}>
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -332,10 +336,10 @@ export function ViewReportModal({ isOpen, onClose, report, projectName }: ViewRe
                                     </div>
                                     <div className="text-center">
                                         <p className="text-3xl">
-                                            {cashFlow.overallStatus === 'green' ? '🟢' : cashFlow.overallStatus === 'yellow' ? '🟡' : '🔴'}
+                                            {cfStatus.overallStatus === 'green' ? '🟢' : cfStatus.overallStatus === 'yellow' ? '🟡' : '🔴'}
                                         </p>
-                                        <p className="text-lg font-bold">{cashFlow.overallStatus === 'green' ? 'Healthy' : cashFlow.overallStatus === 'yellow' ? 'Monitor' : 'At Risk'}</p>
-                                        <p className="text-xs text-slate-500">Score: {(cashFlow.overallScore || 0).toFixed(0)}/100</p>
+                                        <p className="text-lg font-bold">{cfStatus.overallStatus === 'green' ? 'Healthy' : cfStatus.overallStatus === 'yellow' ? 'At Risk' : 'Critical'}</p>
+                                        <p className="text-xs text-slate-500">Score: {(cfStatus.overallScore * 100).toFixed(0)}%</p>
                                     </div>
                                 </div>
                             </div>

@@ -5,6 +5,7 @@ import { useReportContext } from '@/contexts/ReportContext';
 import { ProjectReportSelector } from '@/components/ui/ProjectReportSelector';
 import { ExportPDFButton } from '@/components/ui/ExportPDFButton';
 import { PDFExporter } from '@/lib/pdf-export';
+import { calculateCashFlowStatus } from '@/lib/calculations';
 
 interface RiskItem {
     category: string;
@@ -124,16 +125,16 @@ export default function AnalysisPage() {
             });
         }
 
-        // Cash Flow Risk
-        const cfStatus = selectedReport.cashFlow?.overallStatus || 'green';
-        if (cfStatus === 'red') {
+        // Cash Flow Risk - use calculated status (same as Dashboard)
+        const cfCalc = calculateCashFlowStatus(selectedReport.cashFlow as unknown as Record<string, number>, selectedReport.evm?.bcwp || 0);
+        if (cfCalc.overallStatus === 'red') {
             riskList.push({
                 category: 'Cash Flow',
                 level: 'Critical',
                 description: 'Cash flow is at risk with negative indicators',
                 recommendation: 'Expedite billing and collections, negotiate payment terms'
             });
-        } else if (cfStatus === 'yellow') {
+        } else if (cfCalc.overallStatus === 'yellow') {
             riskList.push({
                 category: 'Cash Flow',
                 level: 'Medium',
@@ -248,8 +249,9 @@ export default function AnalysisPage() {
     const tkdn = selectedReport?.tkdn || { plan: 0, actual: 0 };
     const cashFlow = selectedReport?.cashFlow || { overallStatus: 'green', overallScore: 0 };
 
-    // Status calculations - needed for PDF export callback
-    const cfStatus = cashFlow.overallStatus === 'green' ? 'HEALTHY' : cashFlow.overallStatus === 'yellow' ? 'AT RISK' : 'CRITICAL';
+    // Status calculations - use real-time calculation (same as Dashboard)
+    const cfCalcResult = calculateCashFlowStatus(cashFlow as unknown as Record<string, number>, evm.bcwp || 0);
+    const cfStatus = cfCalcResult.overallStatus === 'green' ? 'HEALTHY' : cfCalcResult.overallStatus === 'yellow' ? 'AT RISK' : 'CRITICAL';
     const safetyStatus = (hse.lagging?.lti || 0) === 0 ? 'GREEN' : 'RED';
     const tkdnStatus = (tkdn.actual || 0) >= (tkdn.plan || 0) ? 'OK' : (tkdn.actual || 0) >= (tkdn.plan || 0) * 0.9 ? 'MONITOR' : 'AT RISK';
 
@@ -471,7 +473,7 @@ export default function AnalysisPage() {
                 <div className="rounded-xl bg-gradient-to-br from-pink-50 to-pink-100 p-4 shadow-sm">
                     <p className="text-xs font-semibold text-pink-600">💵 Cash Flow</p>
                     <p className={`text-xl font-extrabold ${getStatusColor(cfStatus)}`}>{cfStatus}</p>
-                    <p className="text-xs text-slate-500">Score: {((cashFlow.overallScore || 0) * 100).toFixed(0)}%</p>
+                    <p className="text-xs text-slate-500">Score: {(cfCalcResult.overallScore * 100).toFixed(0)}%</p>
                 </div>
 
                 {/* Safety */}
