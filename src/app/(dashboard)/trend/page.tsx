@@ -324,37 +324,82 @@ export default function TrendPage() {
                 const welding = siteOffice?.welding as Record<string, number> | undefined;
                 return welding?.ndtRejected || 0;
             })(),
-            // NCR Data
+            // NCR Data - aggregate from all disciplines in ownerToContractor + contractorToVendor
             ncrOpen: (() => {
                 const quality = r.quality as unknown as Record<string, unknown> | undefined;
                 const siteOffice = quality?.siteOffice as Record<string, unknown> | undefined;
-                const ncr = siteOffice?.ncr as Record<string, number> | undefined;
-                return (ncr?.open || 0);
+                const headOffice = quality?.headOffice as Record<string, unknown> | undefined;
+                const ncr = siteOffice?.ncr as Record<string, Record<string, { open?: number; closed?: number }>> | undefined;
+                const hoNcr = headOffice?.ncr as Record<string, Record<string, { open?: number; closed?: number }>> | undefined;
+                let total = 0;
+                // Site Office NCR
+                ['ownerToContractor', 'contractorToVendor'].forEach(src => {
+                    const srcData = ncr?.[src] || {};
+                    Object.values(srcData).forEach((disc) => { total += disc?.open || 0; });
+                });
+                // Head Office NCR
+                ['ownerToContractor', 'contractorToVendor'].forEach(src => {
+                    const srcData = hoNcr?.[src] || {};
+                    Object.values(srcData).forEach((disc) => { total += disc?.open || 0; });
+                });
+                return total;
             })(),
             ncrClosed: (() => {
                 const quality = r.quality as unknown as Record<string, unknown> | undefined;
                 const siteOffice = quality?.siteOffice as Record<string, unknown> | undefined;
-                const ncr = siteOffice?.ncr as Record<string, number> | undefined;
-                return (ncr?.closed || 0);
+                const headOffice = quality?.headOffice as Record<string, unknown> | undefined;
+                const ncr = siteOffice?.ncr as Record<string, Record<string, { open?: number; closed?: number }>> | undefined;
+                const hoNcr = headOffice?.ncr as Record<string, Record<string, { open?: number; closed?: number }>> | undefined;
+                let total = 0;
+                ['ownerToContractor', 'contractorToVendor'].forEach(src => {
+                    const srcData = ncr?.[src] || {};
+                    Object.values(srcData).forEach((disc) => { total += disc?.closed || 0; });
+                });
+                ['ownerToContractor', 'contractorToVendor'].forEach(src => {
+                    const srcData = hoNcr?.[src] || {};
+                    Object.values(srcData).forEach((disc) => { total += disc?.closed || 0; });
+                });
+                return total;
             })(),
-            // Punch List Data
+            // Punch List Data - aggregate from all disciplines
             punchOpen: (() => {
                 const quality = r.quality as unknown as Record<string, unknown> | undefined;
                 const siteOffice = quality?.siteOffice as Record<string, unknown> | undefined;
-                const punch = siteOffice?.punchList as Record<string, number> | undefined;
-                return (punch?.open || 0);
+                const headOffice = quality?.headOffice as Record<string, unknown> | undefined;
+                const punch = siteOffice?.punchList as Record<string, Record<string, { open?: number; closed?: number }>> | undefined;
+                const hoPunch = headOffice?.punchList as Record<string, Record<string, { open?: number; closed?: number }>> | undefined;
+                let total = 0;
+                ['ownerToContractor', 'contractorToVendor'].forEach(src => {
+                    const srcData = punch?.[src] || {};
+                    Object.values(srcData).forEach((disc) => { total += disc?.open || 0; });
+                });
+                ['ownerToContractor', 'contractorToVendor'].forEach(src => {
+                    const srcData = hoPunch?.[src] || {};
+                    Object.values(srcData).forEach((disc) => { total += disc?.open || 0; });
+                });
+                return total;
             })(),
             punchClosed: (() => {
                 const quality = r.quality as unknown as Record<string, unknown> | undefined;
                 const siteOffice = quality?.siteOffice as Record<string, unknown> | undefined;
-                const punch = siteOffice?.punchList as Record<string, number> | undefined;
-                return (punch?.closed || 0);
+                const headOffice = quality?.headOffice as Record<string, unknown> | undefined;
+                const punch = siteOffice?.punchList as Record<string, Record<string, { open?: number; closed?: number }>> | undefined;
+                const hoPunch = headOffice?.punchList as Record<string, Record<string, { open?: number; closed?: number }>> | undefined;
+                let total = 0;
+                ['ownerToContractor', 'contractorToVendor'].forEach(src => {
+                    const srcData = punch?.[src] || {};
+                    Object.values(srcData).forEach((disc) => { total += disc?.closed || 0; });
+                });
+                ['ownerToContractor', 'contractorToVendor'].forEach(src => {
+                    const srcData = hoPunch?.[src] || {};
+                    Object.values(srcData).forEach((disc) => { total += disc?.closed || 0; });
+                });
+                return total;
             })(),
-            // Certificate Data
+            // Certificate Data - at quality.certificate level
             certCompleted: (() => {
                 const quality = r.quality as unknown as Record<string, unknown> | undefined;
-                const siteOffice = quality?.siteOffice as Record<string, unknown> | undefined;
-                const cert = siteOffice?.certificate as Record<string, number> | undefined;
+                const cert = quality?.certificate as { notYetApplied?: number; underApplication?: number; completed?: number } | undefined;
                 return (cert?.completed || 0);
             })(),
         }));
