@@ -699,35 +699,39 @@ export default function DashboardPage() {
       string[]
     >;
 
-    if (Object.keys(thisWeek).length > 0 || Object.keys(nextWeek).length > 0) {
+    // Helper to check if activities object has any non-empty arrays
+    const hasActivities = (activities: Record<string, string[]>) =>
+      Object.values(activities).some(
+        (items) => Array.isArray(items) && items.length > 0
+      );
+
+    if (hasActivities(thisWeek) || hasActivities(nextWeek)) {
       exporter.addSpacing();
       exporter.addSectionTitle("Activities");
 
-      if (Object.keys(thisWeek).length > 0) {
+      // This Week Activities
+      if (hasActivities(thisWeek)) {
         exporter.addText("This Week Activities:", "normal");
-        Object.entries(thisWeek).forEach(([cat, items]) => {
+        exporter.addSpacing(2);
+
+        Object.entries(thisWeek).forEach(([category, items]) => {
           if (Array.isArray(items) && items.length > 0) {
-            exporter.addText(
-              `${cat.charAt(0).toUpperCase() + cat.slice(1)}: ${items
-                .slice(0, 3)
-                .join("; ")}${items.length > 3 ? "..." : ""}`,
-              "small"
-            );
+            const title = category.charAt(0).toUpperCase() + category.slice(1);
+            exporter.addBulletList(title, items);
           }
         });
       }
 
-      if (Object.keys(nextWeek).length > 0) {
+      // Next Week Plan
+      if (hasActivities(nextWeek)) {
         exporter.addSpacing(3);
         exporter.addText("Next Week Plan:", "normal");
-        Object.entries(nextWeek).forEach(([cat, items]) => {
+        exporter.addSpacing(2);
+
+        Object.entries(nextWeek).forEach(([category, items]) => {
           if (Array.isArray(items) && items.length > 0) {
-            exporter.addText(
-              `${cat.charAt(0).toUpperCase() + cat.slice(1)}: ${items
-                .slice(0, 3)
-                .join("; ")}${items.length > 3 ? "..." : ""}`,
-              "small"
-            );
+            const title = category.charAt(0).toUpperCase() + category.slice(1);
+            exporter.addBulletList(title, items);
           }
         });
       }

@@ -394,6 +394,58 @@ export class PDFExporter {
     this.currentY += size === "small" ? 4 : 5;
   }
 
+  // Add a bulleted list with text wrapping
+  addBulletList(
+    title: string,
+    items: string[],
+    options?: { indent?: number; bulletChar?: string }
+  ): void {
+    if (items.length === 0) return; // Skip if no items
+
+    const indent = options?.indent || 5;
+    const bullet = options?.bulletChar || "•";
+    const fontSize = 8;
+    const lineHeight = 4;
+    const maxWidth = this.contentWidth - indent - 5;
+
+    // Title (category name)
+    this.checkNewPage(8);
+    this.pdf.setFontSize(9);
+    this.pdf.setFont("helvetica", "bold");
+    this.pdf.setTextColor(
+      COLORS.darkGray.r,
+      COLORS.darkGray.g,
+      COLORS.darkGray.b
+    );
+    this.pdf.text(title, this.margin, this.currentY);
+    this.currentY += 5;
+
+    // Items
+    this.pdf.setFontSize(fontSize);
+    this.pdf.setFont("helvetica", "normal");
+    this.pdf.setTextColor(COLORS.gray.r, COLORS.gray.g, COLORS.gray.b);
+
+    items.forEach((item) => {
+      // Split text into lines that fit within maxWidth
+      const lines = this.pdf.splitTextToSize(item, maxWidth);
+
+      // Check if we need a new page for this item
+      this.checkNewPage(lines.length * lineHeight + 2);
+
+      // Draw bullet
+      this.pdf.text(bullet, this.margin + indent, this.currentY);
+
+      // Draw text lines
+      lines.forEach((line: string) => {
+        const textX = this.margin + indent + 4;
+        this.pdf.text(line, textX, this.currentY);
+        this.currentY += lineHeight;
+      });
+    });
+
+    this.currentY += 2; // Small spacing after list
+  }
+
   // Add table with headers and rows
   addTable(
     headers: Array<{
